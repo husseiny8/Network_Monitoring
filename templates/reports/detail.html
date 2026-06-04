@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}جزئیات گزارش | پایش شبکه{% endblock %}
+{% block content %}
+<section class="panel">
+  <div class="panel-header">
+    <h1>گزارش تحلیلی</h1>
+    <div class="header-actions">
+      <a class="btn secondary" href="#">دانلود PDF</a>
+      <a class="btn secondary" href="#">دانلود Excel</a>
+    </div>
+  </div>
+  <div class="report-summary">
+    <div class="summary-box">
+      <span>Availability</span>
+      <strong>99.1%</strong>
+    </div>
+    <div class="summary-box">
+      <span>Average Latency</span>
+      <strong>47 ms</strong>
+    </div>
+    <div class="summary-box">
+      <span>Alerts</span>
+      <strong>14</strong>
+    </div>
+  </div>
+  <div class="panel note">
+    <p>در این قسمت می‌توانید متن گزارش، نمودارها و جداول تحلیلی را قرار دهید.</p>
+  </div>
+</section>
+{% endblock %}

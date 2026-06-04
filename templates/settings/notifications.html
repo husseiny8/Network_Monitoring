@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات اعلان‌ها | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header"><div><h1>تنظیمات اعلان‌ها</h1><p class="muted">مدیریت پیام‌ها و هشدارها.</p></div></section>
+<section class="panel">
+  <div class="toggle-list">
+    <label class="toggle-item"><span>ارسال ایمیل</span><input type="checkbox" checked></label>
+    <label class="toggle-item"><span>ارسال پیام داخل پنل</span><input type="checkbox" checked></label>
+    <label class="toggle-item"><span>اعلان برای وضعیت بحرانی</span><input type="checkbox" checked></label>
+  </div>
+</section>
+{% endblock %}

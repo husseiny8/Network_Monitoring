@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}فرم کاربر | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header"><div><h1>افزودن / ویرایش کاربر</h1></div></section>
+<section class="panel">
+  <form class="form-grid">
+    <label>نام<input type="text"></label>
+    <label>ایمیل<input type="email"></label>
+    <label>نقش<select><option>Administrator</option><option>Operator</option><option>Viewer</option></select></label>
+    <label>رمز عبور<input type="password"></label>
+    <div class="form-actions full-width"><button class="btn primary" type="submit">ذخیره</button></div>
+  </form>
+</section>
+{% endblock %}

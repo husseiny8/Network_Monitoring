@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}داشبورد پایش شبکه{% endblock %}</title>
+  <meta name="description" content="سامانه پایش، تحلیل و تشخیص اختلالات شبکه و اینترنت">
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body class="theme-light">
+  <div class="app-shell">
+    {% include "includes/sidebar.html" %}
+    <div class="app-main">
+      {% include "includes/topbar.html" %}
+      <main class="content-area">
+        {% include "includes/breadcrumb.html" %}
+        {% include "includes/flash_messages.html" %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+  <script src="{% static 'js/app.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

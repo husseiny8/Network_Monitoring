@@ -1,0 +1,14 @@
+{% load static %}
+<header class="topbar">
+  <button class="icon-btn mobile-only" id="sidebarToggle" aria-label="Toggle Sidebar">☰</button>
+  <div class="topbar-search">
+    <input type="text" placeholder="جستجو در دستگاه‌ها، هشدارها و گزارش‌ها...">
+  </div>
+  <div class="topbar-actions">
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle Theme">☾</button>
+    <div class="profile-chip">
+      <img src="{% static 'images/avatars/user.svg' %}" alt="User Avatar">
+      <span>مدیر سیستم</span>
+    </div>
+  </div>
+</header>

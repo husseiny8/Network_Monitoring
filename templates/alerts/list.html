@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}هشدارها | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>هشدارها</h1>
+    <p class="muted">ثبت و مدیریت رخدادهای شبکه و سرویس‌ها.</p>
+  </div>
+  <div class="header-actions">
+    <button class="btn secondary">همه</button>
+    <button class="btn secondary">بحرانی</button>
+  </div>
+</section>
+
+<section class="stack">
+  <article class="alert-card critical">
+    <div>
+      <strong>Router-01</strong>
+      <p>قطعی کامل ارتباط برای 2 دقیقه</p>
+    </div>
+    <span class="badge danger">Critical</span>
+  </article>
+  <article class="alert-card warning">
+    <div>
+      <strong>Switch-02</strong>
+      <p>افزایش تأخیر به 280ms</p>
+    </div>
+    <span class="badge warning">Warning</span>
+  </article>
+  <article class="alert-card info">
+    <div>
+      <strong>DNS Service</strong>
+      <p>بازیابی سرویس با موفقیت انجام شد</p>
+    </div>
+    <span class="badge info">Info</span>
+  </article>
+</section>
+{% endblock %}

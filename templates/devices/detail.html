@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}جزئیات دستگاه | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>جزئیات دستگاه</h1>
+    <p class="muted">نمایش مشخصات، وضعیت فعلی و روند عملکرد دستگاه.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn secondary" href="#">ویرایش</a>
+    <a class="btn danger" href="#">حذف</a>
+  </div>
+</section>
+
+<section class="grid-2">
+  <article class="panel">
+    <h2>اطلاعات پایه</h2>
+    <div class="detail-list">
+      <div><span>نام:</span><strong>Router-01</strong></div>
+      <div><span>IP:</span><strong>192.168.1.1</strong></div>
+      <div><span>نوع:</span><strong>Router</strong></div>
+      <div><span>وضعیت:</span><strong><span class="badge danger">Down</span></strong></div>
+      <div><span>آخرین پاسخ:</span><strong>2 دقیقه قبل</strong></div>
+    </div>
+  </article>
+
+  <article class="panel">
+    <h2>شاخص‌ها</h2>
+    <div class="mini-metrics">
+      <div class="mini-card"><span>Latency</span><strong>312 ms</strong></div>
+      <div class="mini-card"><span>Packet Loss</span><strong>12%</strong></div>
+      <div class="mini-card"><span>Uptime</span><strong>93.2%</strong></div>
+    </div>
+  </article>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
+    <h2>نمودار عملکرد</h2>
+    <span class="muted small">نمونه نمایشی</span>
+  </div>
+  <div class="chart-lines">
+    <span></span><span></span><span></span><span></span><span></span>
+  </div>
+</section>
+{% endblock %}

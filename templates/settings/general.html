@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات عمومی | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header"><div><h1>تنظیمات عمومی</h1><p class="muted">پیکربندی پایه سامانه.</p></div></section>
+<section class="panel">
+  <form class="form-grid">
+    <label>نام سامانه<input type="text" value="Network Monitor"></label>
+    <label>Timezone<select><option>Asia/Tehran</option><option>Asia/Baku</option></select></label>
+    <label>Interval پایش<select><option>1 دقیقه</option><option>5 دقیقه</option><option>15 دقیقه</option></select></label>
+    <label class="full-width">توضیحات<textarea rows="4"></textarea></label>
+    <div class="form-actions full-width"><button class="btn primary" type="submit">ذخیره تنظیمات</button></div>
+  </form>
+</section>
+{% endblock %}

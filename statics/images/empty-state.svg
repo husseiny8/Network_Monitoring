@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 380" role="img" aria-label="Empty state illustration">
+  <rect width="520" height="380" rx="32" fill="#f8fbff"/>
+  <circle cx="258" cy="145" r="82" fill="#dbeafe"/>
+  <circle cx="230" cy="136" r="12" fill="#2563eb"/>
+  <circle cx="286" cy="136" r="12" fill="#2563eb"/>
+  <path d="M225 173c20 20 50 20 70 0" fill="none" stroke="#2563eb" stroke-width="8" stroke-linecap="round"/>
+  <rect x="122" y="250" width="276" height="20" rx="10" fill="#cbd5e1"/>
+  <rect x="160" y="282" width="200" height="16" rx="8" fill="#e2e8f0"/>
+  <text x="260" y="340" text-anchor="middle" font-family="Tahoma, Arial, sans-serif" font-size="22" fill="#475569">No data available</text>
+</svg>

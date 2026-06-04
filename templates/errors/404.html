@@ -1,0 +1,18 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404</title>
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body class="error-page">
+  <div class="error-card">
+    <img src="{% static 'images/empty-state.svg' %}" alt="404" class="error-illustration">
+    <h1>صفحه پیدا نشد</h1>
+    <p class="muted">آدرس مورد نظر وجود ندارد یا منتقل شده است.</p>
+    <a class="btn primary" href="#">بازگشت به داشبورد</a>
+  </div>
+</body>
+</html>

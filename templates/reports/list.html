@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}گزارش‌ها | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>گزارش‌ها</h1>
+    <p class="muted">خروجی‌های تحلیلی روزانه، هفتگی و ماهانه.</p>
+  </div>
+  <div class="header-actions">
+    <a class="btn primary" href="#">گزارش جدید</a>
+    <a class="btn secondary" href="#">خروجی PDF</a>
+  </div>
+</section>
+
+<section class="grid-3">
+  <article class="report-card">
+    <h3>گزارش روزانه</h3>
+    <p>وضعیت لحظه‌ای، هشدارها و شاخص‌های اصلی.</p>
+    <a href="#" class="text-link">مشاهده</a>
+  </article>
+  <article class="report-card">
+    <h3>گزارش هفتگی</h3>
+    <p>روند تغییرات، بیشترین اختلالات و عملکرد.</p>
+    <a href="#" class="text-link">مشاهده</a>
+  </article>
+  <article class="report-card">
+    <h3>گزارش ماهانه</h3>
+    <p>جمع‌بندی کامل و آماری برای ارائه مدیریتی.</p>
+    <a href="#" class="text-link">مشاهده</a>
+  </article>
+</section>
+{% endblock %}
