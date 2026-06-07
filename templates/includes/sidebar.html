@@ -9,12 +9,12 @@
   </div>
 
   <nav class="nav-menu">
-    <a href="#" class="nav-item active">داشبورد</a>
-    <a href="#" class="nav-item">دستگاه‌ها</a>
-    <a href="#" class="nav-item">هشدارها</a>
-    <a href="#" class="nav-item">گزارش‌ها</a>
+    <a href="{% url "dashboard" %}" class="nav-item active">داشبورد</a>
+    <a href="{% url "devices" %}" class="nav-item">دستگاه‌ها</a>
+    <a href="{% url "alerts" %}" class="nav-item">هشدارها</a>
+    <a href="{% url "reports" %}" class="nav-item">گزارش‌ها</a>
     <a href="#" class="nav-item">کاربران</a>
-    <a href="#" class="nav-item">تنظیمات</a>
+    <a href="{% url "settings" %}" class="nav-item">تنظیمات</a>
   </nav>
 
   <div class="sidebar-footer">

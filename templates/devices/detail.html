@@ -6,10 +6,6 @@
     <h1>جزئیات دستگاه</h1>
     <p class="muted">نمایش مشخصات، وضعیت فعلی و روند عملکرد دستگاه.</p>
   </div>
-  <div class="header-actions">
-    <a class="btn secondary" href="#">ویرایش</a>
-    <a class="btn danger" href="#">حذف</a>
-  </div>
 </section>
 
 <section class="grid-2">
@@ -19,8 +15,7 @@
       <div><span>نام:</span><strong>Router-01</strong></div>
       <div><span>IP:</span><strong>192.168.1.1</strong></div>
       <div><span>نوع:</span><strong>Router</strong></div>
-      <div><span>وضعیت:</span><strong><span class="badge danger">Down</span></strong></div>
-      <div><span>آخرین پاسخ:</span><strong>2 دقیقه قبل</strong></div>
+      <div><span>وضعیت:</span><strong><span class="badge success">Online</span></strong></div>
     </div>
   </article>
 
@@ -32,15 +27,27 @@
       <div class="mini-card"><span>Uptime</span><strong>93.2%</strong></div>
     </div>
   </article>
+
 </section>
 
 <section class="panel">
-  <div class="panel-header">
-    <h2>نمودار عملکرد</h2>
-    <span class="muted small">نمونه نمایشی</span>
-  </div>
-  <div class="chart-lines">
-    <span></span><span></span><span></span><span></span><span></span>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th>IP</th>
+                    <th>MAC</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for device in devices %}
+                <tr>
+                    <td>{{ device.ip }}</td>
+                    <td>{{ device.mac }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
   </div>
 </section>
 {% endblock %}
