@@ -13,9 +13,11 @@ def first_check():
     # if ping returns true
     if ping():
         live = "\nCONNECTION ACQUIRED\n"
+        print(live)
         connection_acquired_time = datetime.datetime.now()
         acquiring_message = "connection acquired at: " + \
-            str(connection_acquired_time).split(".")[0]
+            str(connection_acquired_time).split(".")[0] + "\n"
+        print(acquiring_message)
 
         # writes into the log file
         with open(FILE, "a") as file:
@@ -26,6 +28,7 @@ def first_check():
     # if ping returns false
     else:
         not_live = "\nCONNECTION NOT ACQUIRED\n"
+        print(not_live)
 
         # writes into the log file
         with open(FILE, "a") as file:
@@ -87,24 +90,34 @@ def main():
     monitoring_date_time = "monitoring started at: " + \
                            str(monitor_start_time).split(".")[0]
 
-    while True:
+    if first_check():
+        # if true
+        print(monitoring_date_time)
 
-        # infinite loop to check if the connection is acquired
-        # will run until there is a live internet connection
-        if not ping():
+        # monitoring will only start when
+        # the connection will be acquired
 
-            # if connection not acquired
-            time.sleep(1)
-        else:
+    else:
+        # if false
+        while True:
 
-            # if connection is acquired
-            first_check()
-            break
+            # infinite loop to check if the connection is acquired
+            # will run until there is a live internet connection
+            if not ping():
 
-        with open(FILE, "a") as file:
-            # writes into the log file
-            file.write("\n")
-            file.write(monitoring_date_time + "\n")
+                # if connection not acquired
+                time.sleep(1)
+            else:
+
+                # if connection is acquired
+                first_check()
+                print(monitoring_date_time)
+                break
+
+            with open(FILE, "a") as file:
+                # writes into the log file
+                file.write("\n")
+                file.write(monitoring_date_time + "\n")
 
     while True:
 
@@ -120,6 +133,7 @@ def main():
             # if false: fail message will be displayed
             down_time = datetime.datetime.now()
             fail_msg = "disconnected at: " + str(down_time).split(".")[0]
+            print(fail_msg)
 
             with open(FILE, "a") as file:
                 # writes into the log file
@@ -142,6 +156,8 @@ def main():
             # function, printing down time
             unavailablity_time = "connection was unavailable for: " + down_time
 
+            print(uptime_message)
+            print(unavailablity_time)
 
             with open(FILE, "a") as file:
 
@@ -149,3 +165,5 @@ def main():
                 # and unavailability time
                 file.write(uptime_message + "\n")
                 file.write(unavailablity_time + "\n")
+
+main()

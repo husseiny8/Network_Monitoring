@@ -13,14 +13,15 @@
       <img src="{% static 'images/logo.svg' %}" class="auth-logo" alt="Logo">
       <h1>ورود به سامانه</h1>
       <p class="muted">برای دسترسی به داشبورد وارد حساب کاربری شوید.</p>
-      <form class="auth-form">
-        <label>نام کاربری<input type="text" placeholder="admin"></label>
-        <label>رمز عبور<input type="password" placeholder="••••••••"></label>
+
+      <form method="post" action="{% url "login" %}" class="auth-form">
+        {% csrf_token %}
+        {{ form.as_p }}
         <button class="btn primary full-width" type="submit">ورود</button>
       </form>
+
       <div class="auth-links">
-        <a href="#">فراموشی رمز عبور</a>
-        <a href="#">ثبت نام</a>
+        <a href="{% url "signup" %}">ثبت نام</a>
       </div>
     </div>
     <div class="auth-side">
