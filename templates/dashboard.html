@@ -53,9 +53,13 @@
     <small class="trend down">2 مورد بحرانی</small>
   </article>
   <article class="stat-card">
-    <span class="stat-label">میانگین Latency</span>
-    <strong class="stat-value">43 ms</strong>
-    <small class="trend up">پایداری مناسب</small>
+    <span class="stat-label">Latency</span>
+    <strong class="stat-value" id="ping-value">
+        در حال دریافت...
+    </strong>
+      <small>
+          ms
+      </small>
   </article>
   <article class="stat-card">
     <span class="stat-label">Packet Loss</span>
@@ -132,4 +136,24 @@
     </div>
   </article>
 </section>
+
+<script>
+
+    function updatePing() {
+
+        fetch('/api/ping/').then(response => response.json()).then(data => {
+
+            const pingValue = document.getElementById("ping-value");
+            if(data.success){
+                pingValue.innerHTML = data.latency;
+            }
+            else{
+                pingValue.innerHTML = data.message;
+            }
+        });
+    }
+    updatePing();
+    setInterval(updatePing, 30000);
+</script>
+
 {% endblock %}
