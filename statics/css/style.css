@@ -94,6 +94,7 @@ img{max-width:100%;display:block}
   display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:14px;
   padding:12px 16px;font:inherit;cursor:pointer;transition:.2s ease
 }
+.btn.secondary.active{background:var(--primary);color:#fff}
 .btn.primary{background:var(--primary);color:#fff}
 .btn.primary:hover{background:var(--primary-2)}
 .btn.secondary,.ghost-btn{background:#eef4ff;color:#123}

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -20,12 +21,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-d%+0)8i0ub*ucq*#v($bt7qy@)v0kvnxznt*_m88-rnbumyo=7"
+# Falls back to the original dev-only key so nothing breaks if no .env is
+# set up yet - just don't rely on that fallback outside local development.
+# See .env.example for how to override these in a real deployment.
+SECRET_KEY = os.environ.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-d%+0)8i0ub*ucq*#v($bt7qy@)v0kvnxznt*_m88-rnbumyo=7",
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
+]
 
 
 # Application definition
@@ -104,9 +113,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
+LANGUAGE_CODE = "fa-ir"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = "Asia/Tehran"
 
 USE_I18N = True
 
@@ -125,6 +134,22 @@ MEDIA_ROOT = BASE_DIR / "media"
 STATICFILES_DIRS = [
     BASE_DIR / "statics",
 ]
+
+# Default tags are debug/info/success/warning/error; the project's CSS
+# (statics/css/style.css) only defines .alert.success/.warning/.danger/.info,
+# so map "error" -> "danger" to match instead of adding a new error variant.
+from django.contrib.messages import constants as message_constants
+
+MESSAGE_TAGS = {
+    message_constants.ERROR: "danger",
+}
+
+# account/urls.py defines "login" without a trailing slash (mounted under
+# /accounts/), but Django's default LOGIN_URL has one ("/accounts/login/").
+# Without this, every @login_required view would redirect anonymous users
+# to a URL that 404s instead of the real login page.
+LOGIN_URL = "/accounts/login"
+LOGIN_REDIRECT_URL = "/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

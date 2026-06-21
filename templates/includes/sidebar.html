@@ -9,12 +9,14 @@
   </div>
 
   <nav class="nav-menu">
-    <a href="{% url "dashboard" %}" class="nav-item active">داشبورد</a>
-    <a href="{% url "devices" %}" class="nav-item">دستگاه‌ها</a>
-    <a href="{% url "alerts" %}" class="nav-item">هشدارها</a>
-    <a href="{% url "reports" %}" class="nav-item">گزارش‌ها</a>
-    <a href="#" class="nav-item">کاربران</a>
-    <a href="{% url "settings" %}" class="nav-item">تنظیمات</a>
+    <a href="{% url "dashboard" %}" class="nav-item{% if request.resolver_match.url_name == "dashboard" %} active{% endif %}">داشبورد</a>
+    <a href="{% url "devices" %}" class="nav-item{% if request.resolver_match.url_name == "devices" or request.resolver_match.url_name == "device_detail" %} active{% endif %}">دستگاه‌ها</a>
+    <a href="{% url "alerts" %}" class="nav-item{% if request.resolver_match.url_name == "alerts" or request.resolver_match.url_name == "alert_detail" %} active{% endif %}">هشدارها</a>
+    <a href="{% url "reports" %}" class="nav-item{% if request.resolver_match.url_name == "reports" or request.resolver_match.url_name == "report_detail" %} active{% endif %}">گزارش‌ها</a>
+    {% if request.user.is_staff %}
+    <a href="{% url "users" %}" class="nav-item{% if request.resolver_match.url_name == "users" or request.resolver_match.url_name == "user_create" or request.resolver_match.url_name == "user_edit" %} active{% endif %}">کاربران</a>
+    {% endif %}
+    <a href="{% url "settings" %}" class="nav-item{% if request.resolver_match.url_name == "settings" or request.resolver_match.url_name == "settings_notifications" %} active{% endif %}">تنظیمات</a>
   </nav>
 
   <div class="sidebar-footer">

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}دستگاه‌ها | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>دستگاه‌ها</h1>
+    <p class="muted">دستگاه‌های شناسایی‌شده در شبکه از طریق اسکن ARP.</p>
+  </div>
+  <div class="header-actions">
+    <form method="post" action="{% url "devices_scan" %}">
+      {% csrf_token %}
+      <button class="btn primary" type="submit">اسکن مجدد شبکه</button>
+    </form>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>نام / IP</th>
+          <th>MAC</th>
+          <th>نوع</th>
+          <th>وضعیت</th>
+          <th>آخرین مشاهده</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for device in devices %}
+        <tr>
+          <td><a href="{% url "device_detail" device.id %}">{{ device.display_name }}</a></td>
+          <td>{{ device.mac_address|default:"—" }}</td>
+          <td>{{ device.device_type }}</td>
+          <td>
+            {% if device.is_online %}
+              <span class="badge success">Online</span>
+            {% else %}
+              <span class="badge danger">Offline</span>
+            {% endif %}
+          </td>
+          <td>{{ device.last_seen|timesince }} پیش</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="5" class="muted">
+            هنوز دستگاهی شناسایی نشده است. روی «اسکن مجدد شبکه» بزنید تا شبکه محلی اسکن شود.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

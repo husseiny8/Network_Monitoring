@@ -1,4 +1,7 @@
-{#<div class="alerts-stack">#}
-  {# Django messages framework placeholder #}
-{#  <div class="alert success">نمونه پیام موفقیت: داده‌ها با موفقیت ذخیره شد.</div>#}
-{#</div>#}
+{% if messages %}
+  <div class="alerts-stack">
+    {% for message in messages %}
+      <div class="alert {% if message.tags %}{{ message.tags }}{% endif %}">{{ message }}</div>
+    {% endfor %}
+  </div>
+{% endif %}

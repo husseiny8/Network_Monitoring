@@ -1,27 +1,23 @@
 """
-URL configuration for Core project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.2/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
+URL configuration for the account app.
 """
 
-from django.urls import path,include
+from django.urls import path
 
-from account.views import LoginView, LogoutView, SignUpView
-from monitor.views import dashboard_view, settings_view, alerts_view, reports_view, devices_view
+from account.views import (
+    LoginView,
+    LogoutView,
+    SignUpView,
+    user_form_view,
+    users_view,
+)
 
 urlpatterns = [
-    path("login", LoginView,name="login"),
-    path("logout",LogoutView,name="logout"),
-    path("signup",SignUpView,name="signup"),
+    path("login", LoginView, name="login"),
+    path("logout", LogoutView, name="logout"),
+    path("signup", SignUpView, name="signup"),
+
+    path("users", users_view, name="users"),
+    path("users/new", user_form_view, name="user_create"),
+    path("users/<int:user_id>/edit", user_form_view, name="user_edit"),
 ]

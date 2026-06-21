@@ -3,7 +3,7 @@
 {% block content %}
 <section class="page-header">
   <div><h1>کاربران</h1><p class="muted">مدیریت دسترسی و نقش‌ها.</p></div>
-  <a class="btn primary" href="#">+ کاربر جدید</a>
+  <a class="btn primary" href="{% url "user_create" %}">+ کاربر جدید</a>
 </section>
 
 <section class="panel">
@@ -11,8 +11,23 @@
     <table>
       <thead><tr><th>نام</th><th>نقش</th><th>ایمیل</th><th>وضعیت</th><th>عملیات</th></tr></thead>
       <tbody>
-        <tr><td>Admin User</td><td>Administrator</td><td>admin@example.com</td><td><span class="badge success">Active</span></td><td class="actions"><a href="#">ویرایش</a></td></tr>
-        <tr><td>Operator One</td><td>Operator</td><td>op@example.com</td><td><span class="badge success">Active</span></td><td class="actions"><a href="#">ویرایش</a></td></tr>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.username }}</td>
+          <td>{{ u.role }}</td>
+          <td>{{ u.email|default:"—" }}</td>
+          <td>
+            {% if u.is_active %}
+              <span class="badge success">Active</span>
+            {% else %}
+              <span class="badge danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td class="actions"><a href="{% url "user_edit" u.id %}">ویرایش</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="muted">هیچ کاربری ثبت نشده است.</td></tr>
+        {% endfor %}
       </tbody>
     </table>
   </div>

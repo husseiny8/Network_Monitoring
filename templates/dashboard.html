@@ -21,36 +21,21 @@
         background: #f5f5f5;
     }
 </style>
-
-<input type="file" id="fileInput">
-
-<div id="logArea"></div>
-
-<script>
-    document.getElementById("fileInput").addEventListener("change", function(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-        document.getElementById("logArea").textContent = e.target.result;
-    };
-
-    reader.readAsText(file);
-});
-</script>
 </section>
 
 <section class="stats-grid">
   <article class="stat-card">
     <span class="stat-label">دستگاه‌های فعال</span>
-    <strong class="stat-value">{{ devices|length }}</strong>
+    <strong class="stat-value">{{ device_count }}</strong>
   </article>
   <article class="stat-card">
     <span class="stat-label">هشدارهای باز</span>
-    <strong class="stat-value">7</strong>
-    <small class="trend down">2 مورد بحرانی</small>
+    <strong class="stat-value">{{ open_alert_count }}</strong>
+    {% if critical_alert_count %}
+      <small class="trend down">{{ critical_alert_count }} مورد بحرانی</small>
+    {% else %}
+      <small class="trend up">بدون مورد بحرانی</small>
+    {% endif %}
   </article>
   <article class="stat-card">
     <span class="stat-label">Latency</span>
@@ -63,8 +48,12 @@
   </article>
   <article class="stat-card">
     <span class="stat-label">Packet Loss</span>
-    <strong class="stat-value">0.8%</strong>
-    <small class="trend up">در محدوده مطلوب</small>
+    <strong class="stat-value">{{ packet_loss }}%</strong>
+    {% if packet_loss > 10 %}
+      <small class="trend down">نیاز به بررسی</small>
+    {% else %}
+      <small class="trend up">در محدوده مطلوب</small>
+    {% endif %}
   </article>
 </section>
 
@@ -72,16 +61,14 @@
   <article class="panel">
     <div class="panel-header">
       <h2>روند Latency</h2>
-      <button class="ghost-btn">7 روز اخیر</button>
+      <span class="muted small">{{ trend_bars|length }} نمونه اخیر</span>
     </div>
     <div class="chart-bars" aria-label="Latency chart">
-      <span style="height: 42%"></span>
-      <span style="height: 58%"></span>
-      <span style="height: 39%"></span>
-      <span style="height: 72%"></span>
-      <span style="height: 64%"></span>
-      <span style="height: 51%"></span>
-      <span style="height: 46%"></span>
+      {% for bar in trend_bars %}
+        <span style="height: {{ bar }}%"></span>
+      {% empty %}
+        <p class="muted small">هنوز داده‌ای برای نمایش روند وجود ندارد.</p>
+      {% endfor %}
     </div>
   </article>
 
@@ -103,7 +90,7 @@
   <article class="panel">
     <div class="panel-header">
       <h2>آخرین هشدارها</h2>
-      <a class="text-link" href="#">مشاهده همه</a>
+      <a class="text-link" href="{% url "alerts" %}">مشاهده همه</a>
     </div>
     <div class="table-wrap">
       <table>
@@ -111,9 +98,16 @@
           <tr><th>دستگاه</th><th>شدت</th><th>پیام</th><th>زمان</th></tr>
         </thead>
         <tbody>
-          <tr><td>Router-01</td><td><span class="badge danger">Critical</span></td><td>قطعی ارتباط</td><td>2 دقیقه قبل</td></tr>
-          <tr><td>Switch-02</td><td><span class="badge warning">Warning</span></td><td>افزایش latency</td><td>15 دقیقه قبل</td></tr>
-          <tr><td>Server-03</td><td><span class="badge info">Info</span></td><td>سرویس بازیابی شد</td><td>1 ساعت قبل</td></tr>
+          {% for alert in recent_alerts %}
+          <tr>
+            <td><a href="{% url "alert_detail" alert.id %}">{{ alert.device.display_name|default:"—" }}</a></td>
+            <td><span class="badge {{ alert.badge_class }}">{{ alert.get_severity_display }}</span></td>
+            <td>{{ alert.title }}</td>
+            <td>{{ alert.created_at|timesince }} پیش</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="muted">هیچ هشداری ثبت نشده است.</td></tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -121,18 +115,20 @@
 
   <article class="panel">
     <div class="panel-header">
-      <h2>نقشه وضعیت نمونه</h2>
-      <span class="muted small">نمایش مفهومی</span>
-    </div>
-    <div class="map-placeholder">
-      <div class="node node-a"></div>
-      <div class="node node-b"></div>
-      <div class="node node-c"></div>
-      <div class="node node-d"></div>
-      <div class="link link-a"></div>
-      <div class="link link-b"></div>
-      <div class="link link-c"></div>
-      <div class="map-center">Network Core</div>
+      <span class="muted small" id="logArea">Network Logs</span>
+
+        <script>
+            document.getElementById("fileInput").addEventListener("change", function(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                    const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById("logArea").textContent = e.target.result;
+            };
+            reader.readAsText(file);
+            });
+        </script>
+
     </div>
   </article>
 </section>
@@ -153,7 +149,7 @@
         });
     }
     updatePing();
-    setInterval(updatePing, 30000);
+    setInterval(updatePing, {{ poll_interval_ms }});
 </script>
 
 {% endblock %}

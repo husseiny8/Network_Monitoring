@@ -1,30 +1,33 @@
 {% extends "base.html" %}
-{% block title %}جزئیات گزارش | پایش شبکه{% endblock %}
+{% block title %}{{ period_label }} | پایش شبکه{% endblock %}
 {% block content %}
 <section class="panel">
   <div class="panel-header">
-    <h1>گزارش تحلیلی</h1>
+    <h1>{{ period_label }}</h1>
     <div class="header-actions">
-      <a class="btn secondary" href="#">دانلود PDF</a>
-      <a class="btn secondary" href="#">دانلود Excel</a>
+      <a class="btn secondary" href="{% url "report_csv" period %}">دانلود CSV</a>
     </div>
   </div>
   <div class="report-summary">
     <div class="summary-box">
       <span>Availability</span>
-      <strong>99.1%</strong>
+      <strong>{% if availability != None %}{{ availability }}%{% else %}—{% endif %}</strong>
     </div>
     <div class="summary-box">
       <span>Average Latency</span>
-      <strong>47 ms</strong>
+      <strong>{% if avg_latency != None %}{{ avg_latency }} ms{% else %}—{% endif %}</strong>
     </div>
     <div class="summary-box">
       <span>Alerts</span>
-      <strong>14</strong>
+      <strong>{{ alert_count }}</strong>
     </div>
   </div>
   <div class="panel note">
-    <p>در این قسمت می‌توانید متن گزارش، نمودارها و جداول تحلیلی را قرار دهید.</p>
+    {% if sample_size %}
+      <p>این گزارش بر اساس {{ sample_size }} نمونه پایش ثبت‌شده در این بازه محاسبه شده است.</p>
+    {% else %}
+      <p>برای این بازه زمانی هنوز داده‌ای ثبت نشده است.</p>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

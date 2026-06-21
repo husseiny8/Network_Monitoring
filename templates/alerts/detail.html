@@ -3,17 +3,24 @@
 {% block content %}
 <section class="panel">
   <div class="panel-header">
-    <h1>جزئیات هشدار</h1>
-    <span class="badge danger">Critical</span>
+    <h1>{{ alert.title }}</h1>
+    <span class="badge {{ alert.badge_class }}">{{ alert.get_severity_display }}</span>
   </div>
   <div class="detail-list">
-    <div><span>دستگاه:</span><strong>Router-01</strong></div>
-    <div><span>نوع رخداد:</span><strong>Disconnect</strong></div>
-    <div><span>زمان:</span><strong>1404/03/13 - 12:14</strong></div>
-    <div><span>وضعیت:</span><strong>Resolved: No</strong></div>
+    <div><span>دستگاه:</span><strong>{{ alert.device.display_name|default:"سامانه (بدون دستگاه مشخص)" }}</strong></div>
+    <div><span>شدت:</span><strong>{{ alert.get_severity_display }}</strong></div>
+    <div><span>زمان:</span><strong>{{ alert.created_at }}</strong></div>
+    <div><span>وضعیت:</span><strong>{% if alert.is_resolved %}رفع‌شده در {{ alert.resolved_at }}{% else %}رفع نشده{% endif %}</strong></div>
   </div>
   <div class="panel note">
-    <p>این بخش برای نمایش شرح کامل هشدار، اقدامات انجام‌شده و تاریخچه رخدادها در نظر گرفته شده است.</p>
+    <p>{{ alert.message|default:"توضیحات بیشتری برای این هشدار ثبت نشده است." }}</p>
   </div>
+  {% if not alert.is_resolved %}
+  <form method="post" class="form-actions">
+    {% csrf_token %}
+    <input type="hidden" name="action" value="resolve">
+    <button class="btn primary" type="submit">علامت‌گذاری به‌عنوان رفع‌شده</button>
+  </form>
+  {% endif %}
 </section>
 {% endblock %}
