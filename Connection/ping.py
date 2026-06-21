@@ -1,5 +1,5 @@
 import ping3
-
+from monitor.models import Ping
 
 def ping_and_store(ip, user=None, device=None):
     """Ping `ip` once and persist the result as a monitor.models.Ping row.
@@ -10,7 +10,6 @@ def ping_and_store(ip, user=None, device=None):
     """
     # Imported lazily so this module stays import-safe even if Django's
     # app registry isn't ready yet at import time.
-    from monitor.models import Ping
 
     try:
         ping_time = ping3.ping(ip)

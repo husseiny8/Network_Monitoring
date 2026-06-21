@@ -9,7 +9,6 @@
     <label>Timezone
       <select name="timezone_name">
         <option value="Asia/Tehran" {% if settings.timezone_name == "Asia/Tehran" %}selected{% endif %}>Asia/Tehran</option>
-        <option value="Asia/Baku" {% if settings.timezone_name == "Asia/Baku" %}selected{% endif %}>Asia/Baku</option>
       </select>
     </label>
     <label>Interval پایش (ثانیه)
@@ -18,7 +17,6 @@
     <label>بازه اسکن شبکه (CIDR)
       <input type="text" name="scan_subnet" value="{{ settings.scan_subnet }}" placeholder="192.168.1.1/24">
     </label>
-    <label class="full-width">توضیحات<textarea rows="4" name="description">{{ settings.description }}</textarea></label>
     <div class="form-actions full-width"><button class="btn primary" type="submit">ذخیره تنظیمات</button></div>
   </form>
 </section>

@@ -10,20 +10,26 @@
 <body class="auth-page">
   <div class="auth-wrap">
     <div class="auth-card">
-      <img src="{% static 'images/logo.svg' %}" class="auth-logo" alt="Logo">
+      <img src="{% static 'images/login.png' %}" class="auth-logo" alt="Logo">
       <h1>ثبت نام در سامانه</h1>
       <p class="muted">برای دسترسی به داشبورد حساب کاربری خود را ایجاد کنید.</p>
 
       <form class="auth-form" method="post" action="{% url "signup" %}">
           {% csrf_token %}
           <label for="inputUserName">نام کاربری</label>
-          <input type="text" name="username" placeholder="UserName" required autofocus>
+          <label>
+              <input type="text" name="username" placeholder="UserName" required autofocus>
+          </label>
 
           <label for="inputPassword">رمز عبور</label>
-          <input type="password" name="password1" placeholder="Password" required>
+          <label>
+              <input type="password" name="password1" placeholder="Password" required>
+          </label>
 
           <label for="inputPassword">تایید رمز عبور</label>
-          <input type="password" name="password2" placeholder="Confirm Password" required>
+          <label>
+              <input type="password" name="password2" placeholder="Confirm Password" required>
+          </label>
 
           <button class="btn primary full-width" type="submit">ثبت نام</button>
 
@@ -33,7 +39,7 @@
       </div>
     </div>
     <div class="auth-side">
-      <img src="{% static 'images/monitoring-hero.svg' %}" alt="Monitoring">
+      <img src="{% static 'images/images (1).jpg' %}" alt="Monitoring">
     </div>
   </div>
 </body>

@@ -1,10 +1,10 @@
 {% load static %}
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <img src="{% static 'images/logo.svg' %}" alt="Logo" class="brand-logo">
+    <img src="{% static 'images/icons8-internet-96.png' %}" alt="Logo" class="brand-logo">
     <div>
       <div class="brand-title">Network Monitor</div>
-      <div class="brand-subtitle">Django UI Kit</div>
+      <div class="brand-subtitle"></div>
     </div>
   </div>
 
@@ -19,8 +19,8 @@
     <a href="{% url "settings" %}" class="nav-item{% if request.resolver_match.url_name == "settings" or request.resolver_match.url_name == "settings_notifications" %} active{% endif %}">تنظیمات</a>
   </nav>
 
-  <div class="sidebar-footer">
-    <div class="status-dot"></div>
-    <span>سیستم فعال و در حال پایش</span>
-  </div>
+{#  <div class="sidebar-footer">#}
+{#    <div class="status-dot"></div>#}
+{#    <span>سیستم فعال و در حال پایش</span>#}
+{#  </div>#}
 </aside>
