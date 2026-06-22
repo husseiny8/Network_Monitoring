@@ -130,9 +130,9 @@ class SystemSettings(models.Model):
     site_name = models.CharField(max_length=100, default="Network Monitor")
     timezone_name = models.CharField(max_length=50, default="Asia/Tehran")
     poll_interval_seconds = models.PositiveIntegerField(default=30)
-    description = models.TextField(blank=True, default="")
     scan_subnet = models.CharField(max_length=50, default="192.168.1.1/24")
-
+    # TODO:
+    # add this field to template
     notify_email = models.BooleanField(default=True)
     notify_in_app = models.BooleanField(default=True)
     notify_on_critical = models.BooleanField(default=True)

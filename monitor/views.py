@@ -77,7 +77,9 @@ def sync_devices(subnet=None):
 
     return True, None
 
-
+# TODO:
+    # 1.target should possible to change in templates(settings)
+    # 2.instead of device = None its should be a device for example : 192.168.120.1 or device id
 def record_ping(target="8.8.8.8", user=None, device=None):
     """Ping `target`, persist it, and keep a single open "connectivity lost"
     alert in sync (opened on first failure, resolved + logged on recovery)
@@ -151,6 +153,9 @@ def ping_api(request):
             status=401,
         )
 
+    # TODO:
+    # 1.target should possible to change in templates(settings)
+    # 2.instead of device = None its should be a device for example : 192.168.120.1 or device id
     target = request.GET.get("target", "8.8.8.8")
     device = None
     device_id = request.GET.get("device_id")
