@@ -7,6 +7,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from Connection.ping import ping_and_store
+from Connection.health import calculate_health_score
 from Devices import device as device_scanner
 from .models import Alert, Device, Ping, SystemSettings
 
@@ -166,6 +167,7 @@ def dashboard_view(request):
     online_devices = Device.objects.filter(is_online=True)
     open_alerts = Alert.objects.filter(is_resolved=False)
     critical_alert_count = open_alerts.filter(severity="critical").count()
+    all_alerts = Alert.objects.all().order_by("-created_at")[:5]
 
     recent_pings = list(Ping.objects.all().order_by("-created_at")[:10])
     last_pings = Ping.objects.all().order_by("-created_at")[:7]
@@ -179,20 +181,36 @@ def dashboard_view(request):
         else 0
     )
 
-    # oldest -> newest
+    availability = round(100 - packet_loss,1)
+
+    successful_latencies = [
+        p.latency_ms
+        for p in recent_pings
+        if p.success and p.latency_ms is not None
+    ]
+
+    latest_latency = (
+        successful_latencies[0]
+        if successful_latencies
+        else None
+    )
+
+    health_score = calculate_health_score(
+        availability=availability,
+        packet_loss=packet_loss,
+        latency_ms=latest_latency,
+    )
+
     trend = list(reversed(recent_pings))
 
-    # فقط latency های معتبر و موفق
     latencies = [
         p.latency_ms
         for p in trend
         if p.success and p.latency_ms is not None
     ]
 
-    # بیشترین latency برای محاسبه ارتفاع نمودار
     max_latency = max(latencies) if latencies else 1
 
-    # ساخت داده‌های نمودار
     trend_bars = []
 
     for p in trend:
@@ -201,7 +219,6 @@ def dashboard_view(request):
                 (p.latency_ms / max_latency) * 100
             )
         else:
-            # برای ping ناموفق یک bar کوتاه نمایش می‌دهیم
             height_percent = 4
 
         trend_bars.append({
@@ -217,7 +234,10 @@ def dashboard_view(request):
         "device_count": online_devices.count(),
         "open_alert_count": open_alerts.count(),
         "critical_alert_count": critical_alert_count,
-        "recent_alerts": (open_alerts or Alert.objects.all())[:3],
+        "recent_alerts": all_alerts,
+        "health_score" : health_score,
+        "availability": availability,
+        "latest_latency" : latest_latency,
         "trend_bars": trend_bars,
         "last_pings": last_pings,
         "packet_loss": packet_loss,

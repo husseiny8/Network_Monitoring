@@ -107,6 +107,16 @@
   </article>
 </section>
 
+<div class="stat-card health-card">
+    <div class="stat-card-header">
+        <span>سلامت شبکه (امتیاز کلی شبکه)</span>
+    </div>
+
+    <div class="health-score">
+        {{ health_score }}%
+    </div>
+</div>
+
 <section class="grid-2">
   <article class="panel">
     <div class="panel-header">
@@ -143,28 +153,61 @@
 <section class="grid-2">
   <article class="panel">
     <div class="panel-header">
-      <h2>آخرین هشدارها</h2>
-      <a class="text-link" href="{% url "alerts" %}">مشاهده همه</a>
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>دستگاه</th><th>شدت</th><th>پیام</th><th>زمان</th></tr>
-        </thead>
-        <tbody>
-          {% for alert in recent_alerts %}
-          <tr>
-            <td><a href="{% url "alert_detail" alert.id %}">{{ alert.device.display_name|default:"—" }}</a></td>
-            <td><span class="badge {{ alert.badge_class }}">{{ alert.get_severity_display }}</span></td>
-            <td>{{ alert.title }}</td>
-            <td>{{ alert.created_at|timesince }} پیش</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="muted">هیچ هشداری ثبت نشده است.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+  <h2>آخرین هشدارها</h2>
+  <a class="text-link" href="{% url 'alerts' %}">مشاهده همه</a>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>دستگاه</th>
+        <th>شدت</th>
+        <th>وضعیت</th>
+        <th>زمان</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for alert in recent_alerts %}
+        <tr class="alert-row {{ alert.severity }}{% if alert.is_resolved %} resolved{% endif %}">
+
+          <td>
+            <a href="{% url 'alert_detail' alert.id %}">
+              {{ alert.device.display_name|default:"سامانه" }}
+            </a>
+          </td>
+
+          <td>
+            <span class="badge {{ alert.badge_class }}">
+              {{ alert.get_severity_display }}
+            </span>
+          </td>
+
+          <td>
+            {% if alert.is_resolved %}
+              <span class="resolved-tag">رفع‌شده</span>
+            {% else %}
+              <span class="active-tag">فعال</span>
+            {% endif %}
+          </td>
+
+          <td title="{{ alert.created_at }}">
+            {{ alert.created_at|timesince }} پیش
+          </td>
+
+        </tr>
+
+      {% empty %}
+        <tr>
+          <td colspan="4" class="muted">
+            هیچ هشداری ثبت نشده است.
+          </td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
   </article>
 
     <article class="panel">

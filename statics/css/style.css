@@ -133,6 +133,17 @@ th{color:var(--muted);font-weight:700;background:var(--surface-2)}
 .badge.danger{background:#fee2e2;color:#991b1b}
 .badge.info{background:#e0f2fe;color:#075985}
 
+.alert-row td{white-space:normal}
+.alert-row td:first-child{border-right:4px solid transparent}
+.alert-row.critical td:first-child{border-right-color:var(--danger)}
+.alert-row.warning td:first-child{border-right-color:var(--warning)}
+.alert-row.info td:first-child{border-right-color:var(--info)}
+.alert-row:hover{background:var(--surface-2)}
+.alert-row.resolved{opacity:.6}
+.alert-title-link{color:inherit;font-weight:600}
+.alert-title-link:hover{color:var(--primary)}
+.resolved-tag{display:inline-block;margin-inline-start:6px;font-size:11px;font-weight:600;color:var(--muted)}
+
 .chart-bars{
   height:280px;display:grid;grid-template-columns:repeat(7,1fr);align-items:end;gap:12px;padding:20px 10px 10px
 }
