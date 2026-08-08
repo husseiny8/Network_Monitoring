@@ -1,16 +1,13 @@
 import csv
 from datetime import timedelta
-
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-
 from Connection.ping import ping_and_store
 from Devices import device as device_scanner
-
 from .models import Alert, Device, Ping, SystemSettings
 
 CONNECTIVITY_ALERT_TITLE = "Internet connectivity lost"
@@ -77,13 +74,14 @@ def sync_devices(subnet=None):
 
     return True, None
 
-# TODO:
-    # 1.target should possible to change in templates(settings)
-    # 2.instead of device = None its should be a device for example : 192.168.120.1 or device id
-def record_ping(target="8.8.8.8", user=None, device=None):
+def record_ping(target, user=None, device=None):
     """Ping `target`, persist it, and keep a single open "connectivity lost"
     alert in sync (opened on first failure, resolved + logged on recovery)
     instead of creating one alert per failed ping."""
+
+    # TODO:
+    # user could change this
+    target = SystemSettings.objects.all().first().ping_target
     result = ping_and_store(target, user=user, device=device)
 
     open_alert = Alert.objects.filter(
@@ -118,7 +116,7 @@ def dashboard_view(request):
     open_alerts = Alert.objects.filter(is_resolved=False)
     critical_alert_count = open_alerts.filter(severity="critical").count()
 
-    recent_pings = list(Ping.objects.filter(target="8.8.8.8")[:10])
+    recent_pings = list(Ping.objects.all()[:10])
     sample_size = len(recent_pings)
     failed = sum(1 for p in recent_pings if not p.success)
     packet_loss = round((failed / sample_size) * 100, 1) if sample_size else 0
@@ -156,7 +154,8 @@ def ping_api(request):
     # TODO:
     # 1.target should possible to change in templates(settings)
     # 2.instead of device = None its should be a device for example : 192.168.120.1 or device id
-    target = request.GET.get("target", "8.8.8.8")
+    # target = request.GET.get("target", "8.8.8.8")
+    target = SystemSettings.objects.all().first().ping_target
     device = None
     device_id = request.GET.get("device_id")
     if device_id:
@@ -294,7 +293,6 @@ def settings_view(request):
             )
         except (TypeError, ValueError):
             pass
-        settings_obj.description = request.POST.get("description", settings_obj.description)
         settings_obj.scan_subnet = request.POST.get("scan_subnet", "").strip() or settings_obj.scan_subnet
         settings_obj.save()
         messages.success(request, "تنظیمات با موفقیت ذخیره شد.")
@@ -313,3 +311,14 @@ def settings_notifications_view(request):
         messages.success(request, "تنظیمات اعلان‌ها ذخیره شد.")
         return redirect("settings_notifications")
     return render(request, "settings/notifications.html", {"settings": settings_obj})
+
+
+@login_required
+def settings_ping_view(request):
+    ping_obj = SystemSettings.load()
+    if request.method == "POST":
+        ping_obj.ping_target = str(request.POST.get("ping_target"))
+        ping_obj.save()
+        messages.success(request, "تنظیمات اعلان‌ها ذخیره شد.")
+        return redirect("settings_ping")
+    return render(request, "settings/ping.html", {"ping": ping_obj})

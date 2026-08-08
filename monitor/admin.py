@@ -26,4 +26,4 @@ class AlertAdmin(admin.ModelAdmin):
 
 @admin.register(SystemSettings)
 class SystemSettingsAdmin(admin.ModelAdmin):
-    list_display = ("site_name", "scan_subnet", "poll_interval_seconds")
+    list_display = ("site_name", "scan_subnet", "poll_interval_seconds", "ping_target")

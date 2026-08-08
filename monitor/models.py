@@ -4,7 +4,6 @@ from django.utils import timezone
 
 
 class Device(models.Model):
-    """A host discovered on the local network via an ARP scan (or added manually)."""
 
     ip_address = models.GenericIPAddressField(unique=True)
     mac_address = models.CharField(max_length=17, blank=True, default="")
@@ -35,7 +34,6 @@ class Device(models.Model):
 
     @property
     def packet_loss_percent(self):
-        """Failed-ping percentage over this device's most recent samples."""
         recent = list(self.pings.all()[:20])
         if not recent:
             return None
@@ -52,9 +50,6 @@ class Device(models.Model):
 
 
 class Ping(models.Model):
-    """A single latency-check result, optionally tied to the user who triggered it
-    and/or a known Device. This is the persisted version of the model that was
-    sketched out (commented-out) in the original monitor/models.py."""
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -83,6 +78,11 @@ class Ping(models.Model):
         if self.success:
             return f"{self.target} - {self.latency_ms} ms"
         return f"{self.target} - {self.message or 'failed'}"
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
 
 
 class Alert(models.Model):
@@ -124,15 +124,11 @@ class Alert(models.Model):
 
 
 class SystemSettings(models.Model):
-    """Singleton-style row holding the system/notification settings shown on the
-    Settings pages. Use SystemSettings.load() to get-or-create the single row."""
-
     site_name = models.CharField(max_length=100, default="Network Monitor")
     timezone_name = models.CharField(max_length=50, default="Asia/Tehran")
     poll_interval_seconds = models.PositiveIntegerField(default=30)
     scan_subnet = models.CharField(max_length=50, default="192.168.1.1/24")
-    # TODO:
-    # add this field to template
+    ping_target = models.CharField(max_length=100, default="8.8.8.8")
     notify_email = models.BooleanField(default=True)
     notify_in_app = models.BooleanField(default=True)
     notify_on_critical = models.BooleanField(default=True)

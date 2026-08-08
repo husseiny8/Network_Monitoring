@@ -1,6 +1,3 @@
-"""
-URL configuration for the monitor app.
-"""
 from django.urls import path
 
 from monitor.views import (
@@ -16,6 +13,7 @@ from monitor.views import (
     reports_view,
     settings_notifications_view,
     settings_view,
+    settings_ping_view,
 )
 
 urlpatterns = [
@@ -24,6 +22,7 @@ urlpatterns = [
 
     path("settings", settings_view, name="settings"),
     path("settings/notifications", settings_notifications_view, name="settings_notifications"),
+    path("settings/ping", settings_ping_view, name="settings_ping"),
 
     path("devices", devices_view, name="devices"),
     path("devices/scan", devices_scan_view, name="devices_scan"),

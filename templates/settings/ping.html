@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}تنظیمات عمومی | پایش شبکه{% endblock %}
+{% block content %}
+
+<section class="page-header">
+    <div>
+        <h1>تنظیمات Ping Target</h1>
+        <p class="muted">پیکربندی پایه سامانه.</p>
+    </div>
+</section>
+<section class="panel">
+
+  <form class="form-grid" method="post" action="{% url "settings_ping" %}">
+    {% csrf_token %}
+
+    <label>Ping Target
+      <input type="text" name="ping_target" value="{{ ping.ping_target }}" placeholder="{{ ping.ping_target }}">
+    </label>
+
+    <div class="form-actions full-width">
+        <button class="btn primary" type="submit">ذخیره تنظیمات</button>
+    </div>
+
+  </form>
+</section>
+{% endblock %}

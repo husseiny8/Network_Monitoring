@@ -1,23 +1,40 @@
 {% extends "base.html" %}
 {% block title %}تنظیمات عمومی | پایش شبکه{% endblock %}
 {% block content %}
-<section class="page-header"><div><h1>تنظیمات عمومی</h1><p class="muted">پیکربندی پایه سامانه.</p></div></section>
+
+<section class="page-header">
+    <div>
+        <h1>تنظیمات عمومی</h1>
+        <p class="muted">پیکربندی پایه سامانه.</p>
+    </div>
+</section>
 <section class="panel">
+
   <form class="form-grid" method="post" action="{% url "settings" %}">
     {% csrf_token %}
+
     <label>نام سامانه<input type="text" name="site_name" value="{{ settings.site_name }}"></label>
+
     <label>Timezone
       <select name="timezone_name">
         <option value="Asia/Tehran" {% if settings.timezone_name == "Asia/Tehran" %}selected{% endif %}>Asia/Tehran</option>
       </select>
     </label>
-    <label>Interval پایش (ثانیه)
+
+    <label>Interval(second)
       <input type="number" name="poll_interval_seconds" min="5" value="{{ settings.poll_interval_seconds }}">
     </label>
+
     <label>بازه اسکن شبکه (CIDR)
       <input type="text" name="scan_subnet" value="{{ settings.scan_subnet }}" placeholder="192.168.1.1/24">
     </label>
-    <div class="form-actions full-width"><button class="btn primary" type="submit">ذخیره تنظیمات</button></div>
+
+    <div class="form-actions full-width">
+        <button class="btn primary" type="submit">ذخیره تنظیمات</button>
+        <a class="btn primary" href="{% url "settings_notifications" %}">تنظیمات اعلانات</a>
+        <a class="btn primary" href="{% url "settings_ping" %}">تنظیمات Ping Target</a>
+    </div>
+
   </form>
 </section>
 {% endblock %}
