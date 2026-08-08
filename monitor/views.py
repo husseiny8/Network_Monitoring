@@ -79,8 +79,6 @@ def record_ping(target, user=None, device=None):
     alert in sync (opened on first failure, resolved + logged on recovery)
     instead of creating one alert per failed ping."""
 
-    # TODO:
-    # user could change this
     target = SystemSettings.objects.all().first().ping_target
     result = ping_and_store(target, user=user, device=device)
 
@@ -111,23 +109,106 @@ def record_ping(target, user=None, device=None):
 # --------------------------------------------------------------------------
 
 @login_required
+def network_logs_api(request):
+    logs = []
+
+    pings = Ping.objects.all().order_by("-created_at")[:15]
+
+    for ping in pings:
+        local_time = timezone.localtime(ping.created_at)
+
+        if ping.success:
+            level = "INFO"
+            message = (
+                f" Ping to {ping.target} successful - "
+                f"{ping.latency_ms} ms"
+            )
+        else:
+            level = "WARNING"
+            message = (
+                f" Ping to {ping.target} failed - "
+                f"{ping.message}"
+            )
+
+        logs.append({
+            "timestamp": ping.created_at.timestamp(),
+            "time": local_time.strftime("%H:%M:%S"),
+            "level": level,
+            "message": message,
+        })
+
+    alerts = Alert.objects.all().order_by("-created_at")[:15]
+
+    for alert in alerts:
+        local_time = timezone.localtime(alert.created_at)
+
+        logs.append({
+            "timestamp": alert.created_at.timestamp(),
+            "time": local_time.strftime("%H:%M:%S"),
+            "level": alert.severity.upper(),
+            "message": alert.title,
+        })
+
+    logs.sort(
+        key=lambda x: x["timestamp"],
+        reverse=True
+    )
+
+    logs = logs[:20]
+
+    return JsonResponse({
+        "logs": logs
+    })
+
+
+@login_required
 def dashboard_view(request):
     online_devices = Device.objects.filter(is_online=True)
     open_alerts = Alert.objects.filter(is_resolved=False)
     critical_alert_count = open_alerts.filter(severity="critical").count()
 
-    recent_pings = list(Ping.objects.all()[:10])
+    recent_pings = list(Ping.objects.all().order_by("-created_at")[:10])
+    last_pings = Ping.objects.all().order_by("-created_at")[:7]
+
     sample_size = len(recent_pings)
     failed = sum(1 for p in recent_pings if not p.success)
-    packet_loss = round((failed / sample_size) * 100, 1) if sample_size else 0
 
-    trend = list(reversed(recent_pings))  # oldest -> newest, left to right
-    latencies = [p.latency_ms for p in trend if p.success and p.latency_ms]
-    max_latency = max(latencies) if latencies else 1
-    trend_bars = [
-        round((p.latency_ms / max_latency) * 100) if p.success and p.latency_ms else 4
+    packet_loss = (
+        round((failed / sample_size) * 100, 1)
+        if sample_size
+        else 0
+    )
+
+    # oldest -> newest
+    trend = list(reversed(recent_pings))
+
+    # فقط latency های معتبر و موفق
+    latencies = [
+        p.latency_ms
         for p in trend
+        if p.success and p.latency_ms is not None
     ]
+
+    # بیشترین latency برای محاسبه ارتفاع نمودار
+    max_latency = max(latencies) if latencies else 1
+
+    # ساخت داده‌های نمودار
+    trend_bars = []
+
+    for p in trend:
+        if p.success and p.latency_ms is not None:
+            height_percent = round(
+                (p.latency_ms / max_latency) * 100
+            )
+        else:
+            # برای ping ناموفق یک bar کوتاه نمایش می‌دهیم
+            height_percent = 4
+
+        trend_bars.append({
+            "latency_ms": p.latency_ms if p.latency_ms is not None else 0,
+            "height_percent": height_percent,
+            "success": p.success,
+        })
 
     settings_obj = SystemSettings.load()
 
@@ -138,11 +219,12 @@ def dashboard_view(request):
         "critical_alert_count": critical_alert_count,
         "recent_alerts": (open_alerts or Alert.objects.all())[:3],
         "trend_bars": trend_bars,
+        "last_pings": last_pings,
         "packet_loss": packet_loss,
         "poll_interval_ms": settings_obj.poll_interval_seconds * 1000,
     }
-    return render(request, "dashboard.html", context)
 
+    return render(request, "dashboard.html", context)
 
 def ping_api(request):
     if not request.user.is_authenticated:
@@ -319,6 +401,6 @@ def settings_ping_view(request):
     if request.method == "POST":
         ping_obj.ping_target = str(request.POST.get("ping_target"))
         ping_obj.save()
-        messages.success(request, "تنظیمات اعلان‌ها ذخیره شد.")
+        messages.success(request, "تنظیمات پینگ ذخیره شد.")
         return redirect("settings_ping")
     return render(request, "settings/ping.html", {"ping": ping_obj})

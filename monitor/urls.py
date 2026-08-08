@@ -11,6 +11,7 @@ from monitor.views import (
     report_csv_view,
     report_detail_view,
     reports_view,
+    network_logs_api,
     settings_notifications_view,
     settings_view,
     settings_ping_view,
@@ -23,7 +24,8 @@ urlpatterns = [
     path("settings", settings_view, name="settings"),
     path("settings/notifications", settings_notifications_view, name="settings_notifications"),
     path("settings/ping", settings_ping_view, name="settings_ping"),
-
+    path(
+    "api/network-logs/", network_logs_api, name="network_logs_api"),
     path("devices", devices_view, name="devices"),
     path("devices/scan", devices_scan_view, name="devices_scan"),
     path("devices/<int:device_id>", device_detail_view, name="device_detail"),
