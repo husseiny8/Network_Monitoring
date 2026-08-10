@@ -12,6 +12,7 @@ from monitor.views import (
     report_detail_view,
     reports_view,
     network_logs_api,
+    services_api,
     settings_notifications_view,
     settings_view,
     settings_ping_view,
@@ -20,6 +21,7 @@ from monitor.views import (
 urlpatterns = [
     path("", dashboard_view, name="dashboard"),
     path("api/ping/", ping_api, name="ping_api"),
+    path("api/services/", services_api, name="services_api"),
 
     path("settings", settings_view, name="settings"),
     path("settings/notifications", settings_notifications_view, name="settings_notifications"),

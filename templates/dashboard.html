@@ -139,13 +139,10 @@
   <article class="panel">
     <div class="panel-header">
       <h2>وضعیت سرویس‌ها</h2>
-      <button class="ghost-btn">به‌روزرسانی</button>
+      <button class="ghost-btn" type="button" onclick="updateServices()">به‌روزرسانی</button>
     </div>
-    <div class="service-list">
-      <div class="service-row"><span>DNS</span><span class="badge success">Online</span></div>
-      <div class="service-row"><span>Web Server</span><span class="badge success">Online</span></div>
-      <div class="service-row"><span>Database</span><span class="badge warning">Degraded</span></div>
-      <div class="service-row"><span>Gateway</span><span class="badge danger">Down</span></div>
+    <div id="serviceList" class="service-list">
+      <div class="service-row muted">در حال بررسی سرویس‌ها...</div>
     </div>
   </article>
 </section>
@@ -329,6 +326,77 @@ updateLogs();
 
 setInterval(
     updateLogs,
+    {{ poll_interval_ms }}
+);
+</script>
+
+<script>
+function updateServices() {
+
+    fetch("{% url 'services_api' %}")
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Failed to load services");
+            }
+
+            return response.json();
+        })
+        .then(data => {
+
+            const serviceList = document.getElementById("serviceList");
+
+            if (!data.services || data.services.length === 0) {
+                serviceList.innerHTML = `
+                    <div class="service-row muted">
+                        داده‌ای برای نمایش وجود ندارد.
+                    </div>
+                `;
+                return;
+            }
+
+            const statusLabel = {
+                success: "Online",
+                warning: "Degraded",
+                danger: "Down",
+            };
+
+            serviceList.innerHTML = "";
+
+            data.services.forEach(service => {
+
+                const row = document.createElement("div");
+                row.className = "service-row";
+
+                const name = document.createElement("span");
+                name.textContent = service.name;
+
+                const badge = document.createElement("span");
+                badge.className = `badge ${service.status}`;
+                badge.textContent = statusLabel[service.status] || service.status;
+                badge.title = service.message;
+
+                row.appendChild(name);
+                row.appendChild(badge);
+
+                serviceList.appendChild(row);
+            });
+        })
+        .catch(error => {
+
+            console.error("Services API error:", error);
+
+            document.getElementById("serviceList").innerHTML = `
+                <div class="service-row muted">
+                    دریافت وضعیت سرویس‌ها با خطا مواجه شد.
+                </div>
+            `;
+        });
+}
+
+updateServices();
+
+setInterval(
+    updateServices,
     {{ poll_interval_ms }}
 );
 </script>

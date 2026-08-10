@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
+from Connection.services import gateway_ip_from_subnet, run_all as run_service_checks
 from Devices import device as device_scanner
 from .models import Alert, Device, Ping, SystemSettings
 
@@ -265,6 +266,17 @@ def ping_api(request):
 
     result = record_ping(target, user=request.user, device=device)
     return JsonResponse(result)
+
+
+def services_api(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {"success": False, "message": "Authentication required"}, status=401
+        )
+
+    gateway_ip = gateway_ip_from_subnet(SystemSettings.load().scan_subnet)
+    services = run_service_checks(gateway_ip)
+    return JsonResponse({"services": services})
 
 
 # --------------------------------------------------------------------------
