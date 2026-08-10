@@ -8,11 +8,10 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
-from Connection.services import gateway_ip_from_subnet, run_all as run_service_checks
+from Connection.services import gateway_ip_from_subnet,get_default_gateway, run_all as run_service_checks
 from Devices import device as device_scanner
 from .models import Alert, Device, Ping, SystemSettings
-
-CONNECTIVITY_ALERT_TITLE = "Internet connectivity lost"
+from .alert_manager import raise_alert,resolve_alert
 
 PERIOD_DAYS = {"daily": 1, "weekly": 7, "monthly": 30}
 PERIOD_LABELS = {
@@ -30,10 +29,16 @@ def sync_devices(subnet=None):
     """Run an ARP scan and reconcile the results into the Device table,
     raising Alert rows for devices that go offline/come back online.
 
-    Returns (ok, error_message). Scanning needs raw-socket privileges and
-    a real local network, so this is expected to fail in places like a
-    sandboxed container - callers should handle ok=False gracefully
-    rather than treat it as fatal.
+    Device alert behavior:
+        ONLINE -> OFFLINE:
+            Create one device_down alert.
+
+        OFFLINE -> OFFLINE:
+            Keep the same alert open and increase occurrence_count.
+
+        OFFLINE -> ONLINE:
+            Resolve the device_down alert.
+            Create a "back online" info alert.
     """
     if subnet is None:
         subnet = SystemSettings.load().scan_subnet
@@ -54,7 +59,8 @@ def sync_devices(subnet=None):
             existing.is_online = True
             existing.save()
             if was_offline:
-                Alert.objects.create(
+                raise_alert(
+                    alert_type="device_restored",
                     device=existing,
                     severity="info",
                     title=f"{existing.display_name} is back online",
@@ -67,7 +73,8 @@ def sync_devices(subnet=None):
         if ip not in found_by_ip and existing.is_online:
             existing.is_online = False
             existing.save()
-            Alert.objects.create(
+            raise_alert(
+                alert_type="device_restored",
                 device=existing,
                 severity="critical",
                 title=f"{existing.display_name} disconnected",
@@ -85,19 +92,24 @@ def record_ping(target, user=None, device=None):
     result = ping_and_store(target, user=user, device=device)
 
     open_alert = Alert.objects.filter(
-        title=CONNECTIVITY_ALERT_TITLE, is_resolved=False
+        title="Internet connectivity lost",
+        is_resolved=False
     ).first()
 
     if not result["success"]:
         if not open_alert:
-            Alert.objects.create(
-                severity="warning",
-                title=CONNECTIVITY_ALERT_TITLE,
+            raise_alert(
+                alert_type="internet_down",
+                severity="critical",
+                device=None,
+                title="Internet connectivity lost",
                 message=f"Ping to {target} failed: {result['message']}",
             )
     elif open_alert:
         open_alert.resolve()
-        Alert.objects.create(
+        raise_alert(
+            alert_type="internet_restored",
+            device=None,
             severity="info",
             title="Internet connectivity restored",
             message=f"Ping to {target} succeeded again ({result['latency']} ms).",
@@ -196,10 +208,15 @@ def dashboard_view(request):
         else None
     )
 
+    gateway_ip = get_default_gateway()
+
+    services = run_service_checks(gateway_ip)
+
     health_score = calculate_health_score(
         availability=availability,
         packet_loss=packet_loss,
         latency_ms=latest_latency,
+        services=services,
     )
 
     trend = list(reversed(recent_pings))
@@ -211,6 +228,8 @@ def dashboard_view(request):
     ]
 
     max_latency = max(latencies) if latencies else 1
+    if max_latency < 1:
+        max_latency = 1
 
     trend_bars = []
 
@@ -239,6 +258,7 @@ def dashboard_view(request):
         "health_score" : health_score,
         "availability": availability,
         "latest_latency" : latest_latency,
+        "services": services,
         "trend_bars": trend_bars,
         "last_pings": last_pings,
         "packet_loss": packet_loss,
@@ -274,7 +294,7 @@ def services_api(request):
             {"success": False, "message": "Authentication required"}, status=401
         )
 
-    gateway_ip = gateway_ip_from_subnet(SystemSettings.load().scan_subnet)
+    gateway_ip = get_default_gateway()
     services = run_service_checks(gateway_ip)
     return JsonResponse({"services": services})
 

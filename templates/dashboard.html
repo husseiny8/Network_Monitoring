@@ -12,6 +12,130 @@
 
 <style>
 
+.health-score-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    padding: 20px;
+}
+
+/* دایره اصلی */
+
+.health-score-ring {
+    --score: 85;
+
+    width: 130px;
+    height: 130px;
+
+    border-radius: 50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background:
+        conic-gradient(
+            #22c55e calc(var(--score) * 1%),
+            #e5e7eb 0
+        );
+
+    position: relative;
+
+    box-shadow:
+        0 8px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* ایجاد قسمت داخلی دایره */
+
+.health-score-ring::before {
+    content: "";
+
+    position: absolute;
+
+    width: 100px;
+    height: 100px;
+
+    border-radius: 50%;
+
+    background: white;
+}
+
+/* محتوای داخل دایره */
+
+.health-score-inner {
+    position: relative;
+
+    z-index: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    align-items: center;
+    justify-content: center;
+}
+
+.health-score-inner strong {
+    font-size: 28px;
+    font-weight: 800;
+
+    line-height: 1;
+
+    color: #111827;
+}
+
+.health-score-inner span {
+    margin-top: 7px;
+
+    font-size: 11px;
+
+    color: #6b7280;
+}
+
+/* متن کنار دایره */
+
+.health-score-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.health-score-title {
+    font-size: 15px;
+
+    font-weight: 700;
+
+    color: #374151;
+}
+
+.health-status {
+    width: fit-content;
+
+    padding: 5px 10px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+.health-status.good {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.health-status.medium {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.health-status.bad {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
 .chart-bars span {
     display: flex;
     align-items: center;
@@ -107,14 +231,30 @@
   </article>
 </section>
 
-<div class="stat-card health-card">
-    <div class="stat-card-header">
-        <span>سلامت شبکه (امتیاز کلی شبکه)</span>
+<div class="health-score-card">
+
+    <div class="health-score-ring"
+         style="--score: {{ health_score }};">
+
+        <div class="health-score-inner">
+            <strong>{{ health_score }}%</strong>
+            <span>Health Score</span>
+        </div>
+
     </div>
 
-    <div class="health-score">
-        {{ health_score }}%
+    <div class="health-score-info">
+        <span class="health-score-title">سلامت شبکه</span>
+
+        {% if health_score >= 80 %}
+            <span class="health-status good">عالی</span>
+        {% elif health_score >= 70 %}
+            <span class="health-status medium">قابل قبول</span>
+        {% else %}
+            <span class="health-status bad">نیازمند بررسی</span>
+        {% endif %}
     </div>
+
 </div>
 
 <section class="grid-2">

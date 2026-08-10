@@ -86,6 +86,16 @@ class Ping(models.Model):
 
 
 class Alert(models.Model):
+    ALERT_TYPE_CHOICES = [
+        ("internet_down", "Internet Down"),
+        ("internet_restored", "Internet Restored"),
+        ("device_down", "Device Down"),
+        ("device_restored", "Device Restored"),
+        ("high_latency", "High Latency"),
+        ("packet_loss", "Packet Loss"),
+        ("service_down", "Service Down"),
+    ]
+
     SEVERITY_CHOICES = [
         ("critical", "Critical"),
         ("warning", "Warning"),
@@ -102,6 +112,7 @@ class Alert(models.Model):
     severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default="info")
     title = models.CharField(max_length=200)
     message = models.TextField(blank=True, default="")
+    alert_type = models.CharField(max_length=30,choices=ALERT_TYPE_CHOICES,default="internet_down")
     is_resolved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
