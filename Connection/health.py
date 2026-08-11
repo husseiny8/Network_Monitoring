@@ -1,21 +1,26 @@
 def calculate_service_score(service):
 
     if not service:
-        return 0
+        return None
 
-    if service.get("status") == "success":
+    status = service.get("status")
+
+    if status == "success":
         return 100
 
-    if service.get("status") == "warning":
+    if status == "warning":
         return 60
 
-    return 0
+    if status == "danger":
+        return 0
+
+    return None
 
 
 def calculate_latency_score(latency_ms):
 
     if latency_ms is None:
-        return 0
+        return None
 
     if latency_ms <= 50:
         return 100
@@ -33,6 +38,9 @@ def calculate_latency_score(latency_ms):
 
 
 def calculate_packet_loss_score(packet_loss):
+
+    if packet_loss is None:
+        return None
 
     if packet_loss <= 0:
         return 100
@@ -53,7 +61,37 @@ def calculate_packet_loss_score(packet_loss):
 
 
 def calculate_availability_score(availability):
-    return max(0, min(100, availability))
+
+    if availability is None:
+        return None
+
+    return max(0, min(100, float(availability)))
+
+
+def _weighted_average(scores):
+
+    valid_scores = [
+        (score, weight)
+        for score, weight in scores
+        if score is not None
+    ]
+
+    if not valid_scores:
+        return 0
+
+    total_weight = sum(
+        weight for _, weight in valid_scores
+    )
+
+    if total_weight <= 0:
+        return 0
+
+    weighted_sum = sum(
+        score * weight
+        for score, weight in valid_scores
+    )
+
+    return weighted_sum / total_weight
 
 
 def calculate_health_score(
@@ -87,11 +125,7 @@ def calculate_health_score(
         latency_ms
     )
 
-    dns_score = 0
-    web_score = 0
-    tcp_score = 0
-    gateway_score = 0
-    database_score = 0
+    service_scores = {}
 
     if services:
 
@@ -99,34 +133,33 @@ def calculate_health_score(
 
             name = service.get("name")
 
-            if name == "DNS":
-                dns_score = calculate_service_score(service)
+            score = calculate_service_score(
+                service
+            )
 
-            elif name == "Web Server":
-                web_score = calculate_service_score(service)
+            if score is not None:
+                service_scores[name] = score
 
-            elif name == "TCP Port":
-                tcp_score = calculate_service_score(service)
+    dns_score = service_scores.get("DNS")
+    web_score = service_scores.get("Web Server")
+    tcp_score = service_scores.get("TCP Port")
+    gateway_score = service_scores.get("Gateway")
 
-            elif name == "Gateway":
-                gateway_score = calculate_service_score(service)
+    scores = [
+        (availability_score, 0.20),
+        (packet_loss_score, 0.20),
+        (latency_score, 0.15),
+        (dns_score, 0.10),
+        (web_score, 0.10),
+        (tcp_score, 0.10),
+        (gateway_score, 0.15),
+    ]
 
-            elif name == "Database":
-                database_score = calculate_service_score(service)
-
-    health_score = (
-        availability_score * 0.20
-        + packet_loss_score * 0.15
-        + latency_score * 0.15
-
-        + dns_score * 0.10
-        + web_score * 0.10
-        + tcp_score * 0.05
-        + gateway_score * 0.15
-        + database_score * 0.05
+    health_score = _weighted_average(
+        scores
     )
 
     return round(
         max(0, min(100, health_score)),
-        1
+        1,
     )

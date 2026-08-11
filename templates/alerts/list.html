@@ -21,30 +21,40 @@
 
     <article class="stat-card">
         <span class="stat-label">کل هشدارها</span>
+
         <strong class="stat-value">
-            {{ alerts|length }}
+            {{ total_alert_count }}
         </strong>
     </article>
+
 
     <article class="stat-card">
         <span class="stat-label">هشدارهای فعال</span>
 
         <strong class="stat-value">
-            {% with active_count=alerts|length %}
-                {{ active_count }}
-            {% endwith %}
+            {{ active_alert_count }}
         </strong>
     </article>
+
 
     <article class="stat-card">
         <span class="stat-label">نمایش فعلی</span>
 
         <strong class="stat-value">
-            {% if severity %}
-                {{ severity|title }}
+
+            {% if severity == "critical" %}
+                بحرانی
+
+            {% elif severity == "warning" %}
+                هشدار
+
+            {% elif severity == "info" %}
+                اطلاع
+
             {% else %}
                 همه
             {% endif %}
+
         </strong>
     </article>
 
@@ -65,31 +75,34 @@
 
         <div class="alert-filters">
 
-            <a
-                href="{% url 'alerts' %}"
-                class="ghost-btn {% if not severity %}active{% endif %}">
-                همه
-            </a>
+    <a
+        href="{% url 'alerts' %}"
+        class="ghost-btn {% if not severity %}active{% endif %}">
+        همه
+    </a>
 
-            <a
-                href="?severity=critical"
-                class="ghost-btn {% if severity == 'critical' %}active{% endif %}">
-                بحرانی
-            </a>
 
-            <a
-                href="?severity=warning"
-                class="ghost-btn {% if severity == 'warning' %}active{% endif %}">
-                هشدار
-            </a>
+    <a
+        href="{% url 'alerts' %}?severity=critical"
+        class="ghost-btn {% if severity == 'critical' %}active{% endif %}">
+        بحرانی
+    </a>
 
-            <a
-                href="?severity=info"
-                class="ghost-btn {% if severity == 'info' %}active{% endif %}">
-                اطلاع
-            </a>
 
-        </div>
+    <a
+        href="{% url 'alerts' %}?severity=warning"
+        class="ghost-btn {% if severity == 'warning' %}active{% endif %}">
+        هشدار
+    </a>
+
+
+    <a
+        href="{% url 'alerts' %}?severity=info"
+        class="ghost-btn {% if severity == 'info' %}active{% endif %}">
+        اطلاع
+    </a>
+
+</div>
 
     </div>
 

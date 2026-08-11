@@ -5,14 +5,15 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from Connection.dns_lookup import lookup as dns_lookup
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
-from Connection.services import gateway_ip_from_subnet,get_default_gateway, run_all as run_service_checks
+from Connection.services import get_default_gateway, run_all as run_service_checks
+from .models import Device, SystemSettings
 from Devices import device as device_scanner
-from .models import Alert, Device, Ping, SystemSettings
-from .alert_manager import raise_alert,resolve_alert
+from .models import Ping
+from time import timezone
+from .alert_manager import *
 
 PERIOD_DAYS = {"daily": 1, "weekly": 7, "monthly": 30}
 PERIOD_LABELS = {
@@ -21,6 +22,13 @@ PERIOD_LABELS = {
     "monthly": "گزارش ماهانه",
 }
 
+HIGH_LATENCY_WARNING_MS = 200
+HIGH_LATENCY_CRITICAL_MS = 500
+
+PACKET_LOSS_WARNING_PERCENT = 10
+PACKET_LOSS_CRITICAL_PERCENT = 30
+
+PACKET_LOSS_SAMPLE_SIZE = 10
 
 # --------------------------------------------------------------------------
 # Helpers
@@ -28,20 +36,32 @@ PERIOD_LABELS = {
 
 def sync_devices(subnet=None):
     """
-    Scan the LAN and synchronize Device states.
+    ARP scan و هماهنگ‌سازی Deviceها.
 
-    ONLINE -> OFFLINE:
-        Open/update a device-down Incident.
+    Hysteresis:
+        Failureهای متوالی -> Device Down
+        Successهای متوالی -> Device Recovery
 
-    OFFLINE -> OFFLINE:
-        Update the same Incident.
-
-    OFFLINE -> ONLINE:
-        Resolve the existing Incident.
+    هر Device یک alert_key مستقل دارد:
+        device:<device_id>:down
     """
 
+    settings_obj = SystemSettings.load()
+
     if subnet is None:
-        subnet = SystemSettings.load().scan_subnet
+        subnet = settings_obj.scan_subnet
+
+    failure_threshold = (
+        settings_obj.failure_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
+
+    recovery_threshold = (
+        settings_obj.recovery_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
 
     try:
         found = device_scanner.scan(subnet)
@@ -51,99 +71,133 @@ def sync_devices(subnet=None):
     found_by_ip = {
         item["ip"]: item.get("mac", "")
         for item in found
+        if item.get("ip")
     }
 
     existing_by_ip = {
-        d.ip_address: d
-        for d in Device.objects.all()
+        device.ip_address: device
+        for device in Device.objects.all()
     }
 
-    # --------------------------------------------------
+    # ==========================================================
     # Devices found by ARP scan
-    # --------------------------------------------------
+    # ==========================================================
 
     for ip, mac in found_by_ip.items():
 
-        existing = existing_by_ip.get(ip)
+        device = existing_by_ip.get(ip)
 
-        if existing:
+        # ------------------------------------------------------
+        # New device
+        # ------------------------------------------------------
 
-            was_offline = not existing.is_online
+        if device is None:
 
-            existing.mac_address = (
-                mac or existing.mac_address
-            )
-
-            existing.is_online = True
-            existing.save(
-                update_fields=[
-                    "mac_address",
-                    "is_online",
-                    "last_seen",
-                ]
-            )
-
-            # Recovery
-            if was_offline:
-
-                resolve_alert(
-                    alert_key=f"device:{existing.pk}",
-                    message=(
-                        f"{existing.ip_address} "
-                        f"responded to the network scan again."
-                    ),
-                )
-
-        else:
-
-            Device.objects.create(
+            device = Device.objects.create(
                 ip_address=ip,
                 mac_address=mac,
                 is_online=True,
             )
 
-    # --------------------------------------------------
-    # Devices missing from scan
-    # --------------------------------------------------
-
-    for ip, existing in existing_by_ip.items():
-
-        if ip in found_by_ip:
             continue
 
-        if not existing.is_online:
-            # Already offline.
-            # Do NOT create another Incident.
-            continue
+        was_offline = not device.is_online
 
-        existing.is_online = False
+        device.mac_address = (
+            mac or device.mac_address
+        )
 
-        existing.save(
+        device.is_online = True
+        device.last_seen = timezone.now()
+
+        device.save(
             update_fields=[
+                "mac_address",
                 "is_online",
                 "last_seen",
             ]
         )
 
-        raise_alert(
-            alert_key=f"device:{existing.pk}",
-            alert_type="device_down",
-            device=existing,
-            severity="critical",
-            status="down",
-            title=f"{existing.display_name} disconnected",
-            message=(
-                f"{existing.ip_address} did not respond "
-                f"to the latest network scan."
+        # ------------------------------------------------------
+        # Device recovery
+        # ------------------------------------------------------
+
+        alert_key = f"device:{device.id}:down"
+
+        recovery_result = process_recovery(
+            alert_key=alert_key,
+            recovery_threshold=recovery_threshold,
+            recovery_message=(
+                f"{device.display_name} is back online. "
+                f"{device.ip_address} responded to the "
+                f"latest network scan."
             ),
         )
+
+        if recovery_result["resolved"]:
+
+            device.is_online = True
+            device.last_seen = timezone.now()
+
+            device.save(
+                update_fields=[
+                    "is_online",
+                    "last_seen",
+                ]
+            )
+
+    # ==========================================================
+    # Devices missing from ARP scan
+    # ==========================================================
+
+    for ip, device in existing_by_ip.items():
+
+        if ip in found_by_ip:
+            continue
+
+        alert_key = f"device:{device.id}:down"
+
+        failure_result = process_failure(
+            alert_key=alert_key,
+            alert_type="device_down",
+            title=f"{device.display_name} disconnected",
+            message=(
+                f"{device.ip_address} did not respond "
+                f"to the latest network scan."
+            ),
+            severity="critical",
+            status="down",
+            failure_threshold=failure_threshold,
+            device=device,
+        )
+
+        # ------------------------------------------------------
+        # Only mark Device offline after the threshold is reached
+        # ------------------------------------------------------
+
+        if failure_result["triggered"]:
+
+            if device.is_online:
+
+                device.is_online = False
+
+                device.save(
+                    update_fields=[
+                        "is_online",
+                    ]
+                )
 
     return True, None
 
 
+
 def record_ping(target=None, user=None, device=None):
     """
-    Perform a ping and synchronize the Internet Incident state.
+    اجرای Ping و مدیریت:
+        Internet Down
+        Internet Recovery
+        High Latency
+        Packet Loss
     """
 
     settings_obj = SystemSettings.load()
@@ -151,48 +205,509 @@ def record_ping(target=None, user=None, device=None):
     if target is None:
         target = settings_obj.ping_target
 
+    target = str(target).strip()
+
+    if not target:
+        return {
+            "success": False,
+            "latency": None,
+            "message": "No ping target configured.",
+        }
+
     result = ping_and_store(
         target,
         user=user,
         device=device,
     )
 
-    alert_key = f"internet:{target}"
+    failure_threshold = (
+        settings_obj.failure_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
 
-    # --------------------------------------------------
-    # Internet DOWN
-    # --------------------------------------------------
+    recovery_threshold = (
+        settings_obj.recovery_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
 
-    if not result["success"]:
+    internet_alert_key = f"internet:{target}"
 
-        raise_alert(
-            alert_key=alert_key,
+    # =========================================================
+    # Ping FAILED
+    # =========================================================
+
+    if not result.get("success"):
+
+        failure_message = result.get(
+            "message",
+            "Ping failed.",
+        )
+
+        failure_result = process_failure(
+            alert_key=internet_alert_key,
             alert_type="internet_down",
-            severity="critical",
-            status="down",
-            device=None,
             title="Internet connectivity lost",
             message=(
                 f"Ping to {target} failed: "
-                f"{result.get('message', 'Unknown error')}"
+                f"{failure_message}"
+            ),
+            severity="critical",
+            status="down",
+            failure_threshold=failure_threshold,
+            device=device,
+        )
+
+        result["alert_triggered"] = (
+            failure_result["triggered"]
+        )
+
+        result["alert_created"] = (
+            failure_result["created"]
+        )
+
+        if failure_result["alert"]:
+            alert = failure_result["alert"]
+
+            result["alert_id"] = alert.id
+            result["alert_status"] = alert.status
+            result["alert_occurrence_count"] = (
+                alert.occurrence_count
+            )
+            result["alert_duration_seconds"] = (
+                alert.duration_seconds
+            )
+
+        result["failure_count"] = (
+            failure_result["failure_count"]
+        )
+
+        result["recovery_count"] = (
+            failure_result["success_count"]
+        )
+
+        # در زمان Down بودن، High Latency معنا ندارد.
+        process_recovery(
+            alert_key=f"latency:{target}",
+            recovery_threshold=1,
+            recovery_message=(
+                f"High latency monitoring stopped because "
+                f"{target} is unreachable."
             ),
         )
 
-    # --------------------------------------------------
-    # Internet RECOVERED
-    # --------------------------------------------------
+        return result
+
+    # =========================================================
+    # Ping SUCCESS
+    # =========================================================
+
+    recovery_result = process_recovery(
+        alert_key=internet_alert_key,
+        recovery_threshold=recovery_threshold,
+        recovery_message=(
+            f"Internet connectivity restored. "
+            f"Ping to {target} succeeded."
+            + (
+                f" Latency: {result.get('latency')} ms."
+                if result.get("latency") is not None
+                else ""
+            )
+        ),
+    )
+
+    result["internet_recovery_count"] = (
+        recovery_result["recovery_count"]
+    )
+
+    if recovery_result["resolved"]:
+        recovered_alert = recovery_result["alert"]
+
+        result["internet_alert_resolved"] = True
+        result["internet_alert_id"] = recovered_alert.id
+        result["internet_outage_duration_seconds"] = (
+            recovered_alert.duration_seconds
+        )
+    else:
+        result["internet_alert_resolved"] = False
+
+    # =========================================================
+    # High Latency
+    # =========================================================
+
+    latency = result.get("latency")
+
+    if latency is not None:
+
+        latency_key = f"latency:{target}"
+
+        if latency < settings_obj.high_latency_warning_ms:
+
+            latency_recovery = process_recovery(
+                alert_key=latency_key,
+                recovery_threshold=recovery_threshold,
+                recovery_message=(
+                    f"Latency to {target} returned to normal. "
+                    f"Current latency: {latency} ms."
+                ),
+            )
+
+            result["latency_alert"] = {
+                "status": (
+                    "resolved"
+                    if latency_recovery["resolved"]
+                    else "healthy"
+                ),
+                "alert_id": (
+                    latency_recovery["alert"].id
+                    if latency_recovery["alert"]
+                    else None
+                ),
+                "recovery_count": (
+                    latency_recovery["recovery_count"]
+                ),
+            }
+
+        else:
+
+            severity = (
+                "critical"
+                if latency >= settings_obj.high_latency_critical_ms
+                else "warning"
+            )
+
+            latency_failure = process_failure(
+                alert_key=latency_key,
+                alert_type="high_latency",
+                title=f"High latency to {target}",
+                message=(
+                    f"Latency to {target} is "
+                    f"{latency} ms."
+                ),
+                severity=severity,
+                status="degraded",
+                failure_threshold=failure_threshold,
+                device=device,
+                value=latency,
+            )
+
+            result["latency_alert"] = {
+                "status": (
+                    "degraded"
+                    if latency_failure["triggered"]
+                    else "pending"
+                ),
+                "severity": severity,
+                "alert_id": (
+                    latency_failure["alert"].id
+                    if latency_failure["alert"]
+                    else None
+                ),
+                "failure_count": (
+                    latency_failure["failure_count"]
+                ),
+            }
+
+    # =========================================================
+    # Packet Loss
+    # =========================================================
+
+    packet_loss = get_packet_loss_for_target(
+        target=target,
+        device=device,
+        sample_size=10,
+    )
+
+    result["packet_loss"] = packet_loss
+
+    if packet_loss is not None:
+
+        packet_loss_key = f"packet_loss:{target}"
+
+        if (
+            packet_loss
+            < settings_obj.packet_loss_warning_percent
+        ):
+
+            packet_recovery = process_recovery(
+                alert_key=packet_loss_key,
+                recovery_threshold=recovery_threshold,
+                recovery_message=(
+                    f"Packet loss to {target} returned "
+                    f"to normal. Current loss: "
+                    f"{packet_loss}%."
+                ),
+            )
+
+            result["packet_loss_alert"] = {
+                "status": (
+                    "resolved"
+                    if packet_recovery["resolved"]
+                    else "healthy"
+                ),
+                "alert_id": (
+                    packet_recovery["alert"].id
+                    if packet_recovery["alert"]
+                    else None
+                ),
+                "recovery_count": (
+                    packet_recovery["recovery_count"]
+                ),
+            }
+
+        else:
+
+            severity = (
+                "critical"
+                if packet_loss
+                >= settings_obj.packet_loss_critical_percent
+                else "warning"
+            )
+
+            packet_failure = process_failure(
+                alert_key=packet_loss_key,
+                alert_type="packet_loss",
+                title=f"Packet loss detected for {target}",
+                message=(
+                    f"Packet loss to {target} is "
+                    f"{packet_loss}%."
+                ),
+                severity=severity,
+                status="degraded",
+                failure_threshold=failure_threshold,
+                device=device,
+                value=packet_loss,
+            )
+
+            result["packet_loss_alert"] = {
+                "status": (
+                    "degraded"
+                    if packet_failure["triggered"]
+                    else "pending"
+                ),
+                "severity": severity,
+                "alert_id": (
+                    packet_failure["alert"].id
+                    if packet_failure["alert"]
+                    else None
+                ),
+                "failure_count": (
+                    packet_failure["failure_count"]
+                ),
+            }
+
+    return result
+
+
+
+def sync_high_latency_alert(
+    target,
+    latency_ms,
+    device=None,
+):
+    """
+    مدیریت Incident مربوط به High Latency.
+
+    وضعیت‌ها:
+
+        latency < 200ms
+            -> healthy / resolve
+
+        200ms <= latency < 500ms
+            -> degraded / warning
+
+        latency >= 500ms
+            -> degraded / critical
+
+    نکته:
+        High Latency زمانی بررسی می‌شود که Ping موفق باشد.
+        Ping ناموفق توسط internet_down یا device_down مدیریت می‌شود.
+    """
+
+    if latency_ms is None:
+        return None
+
+    alert_key = f"latency:{target}"
+
+    # ---------------------------------------------------------
+    # Latency طبیعی
+    # ---------------------------------------------------------
+
+    if latency_ms < HIGH_LATENCY_WARNING_MS:
+
+        resolved_alert = resolve_alert(
+            alert_key=alert_key,
+            message=(
+                f"Latency to {target} returned to normal. "
+                f"Current latency: {latency_ms} ms."
+            ),
+        )
+
+        return {
+            "alert": resolved_alert,
+            "status": "resolved" if resolved_alert else "healthy",
+        }
+
+    # ---------------------------------------------------------
+    # Latency بالا
+    # ---------------------------------------------------------
+
+    if latency_ms >= HIGH_LATENCY_CRITICAL_MS:
+
+        severity = "critical"
 
     else:
 
-        resolve_alert(
+        severity = "warning"
+
+    alert, created = raise_alert(
+        alert_key=alert_key,
+        alert_type="high_latency",
+        severity=severity,
+        status="degraded",
+        device=device,
+        title=f"High latency to {target}",
+        message=(
+            f"Latency to {target} is {latency_ms} ms. "
+            f"Warning threshold: "
+            f"{HIGH_LATENCY_WARNING_MS} ms."
+        ),
+    )
+
+    return {
+        "alert": alert,
+        "status": "degraded",
+        "severity": severity,
+        "created": created,
+        "latency_ms": latency_ms,
+    }
+
+
+def get_packet_loss_for_target(
+    target,
+    device=None,
+    sample_size=10,
+):
+    """
+    محاسبه Packet Loss از آخرین Pingهای Target.
+    """
+
+    queryset = Ping.objects.filter(
+        target=target,
+    )
+
+    if device is not None:
+        queryset = queryset.filter(
+            device=device,
+        )
+
+    recent_pings = list(
+        queryset.order_by("-created_at")[:sample_size]
+    )
+
+    if not recent_pings:
+        return None
+
+    failed = sum(
+        1
+        for ping in recent_pings
+        if not ping.success
+    )
+
+    return round(
+        (failed / len(recent_pings)) * 100,
+        1,
+    )
+
+
+
+def sync_packet_loss_alert(
+    target,
+    device=None,
+):
+    """
+    مدیریت Incident مربوط به Packet Loss.
+
+    کمتر از 10%:
+        Normal
+
+    بین 10% تا 30%:
+        Degraded / Warning
+
+    بیشتر یا مساوی 30%:
+        Degraded / Critical
+
+    Packet Loss به تنهایی باعث Down شدن سرویس نمی‌شود.
+    """
+
+    packet_loss = get_packet_loss_for_target(
+        target=target,
+        device=device,
+    )
+
+    if packet_loss is None:
+        return None
+
+    alert_key = f"packet_loss:{target}"
+
+    # ---------------------------------------------------------
+    # Packet Loss طبیعی
+    # ---------------------------------------------------------
+
+    if packet_loss < PACKET_LOSS_WARNING_PERCENT:
+
+        resolved_alert = resolve_alert(
             alert_key=alert_key,
             message=(
-                f"Ping to {target} succeeded again "
-                f"({result.get('latency')} ms)."
+                f"Packet loss to {target} returned to normal. "
             ),
         )
 
-    return result
+        return {
+            "alert": resolved_alert,
+            "status": "resolved" if resolved_alert else "healthy",
+            "packet_loss": packet_loss,
+        }
+
+    # ---------------------------------------------------------
+    # تعیین Severity
+    # ---------------------------------------------------------
+
+    if packet_loss >= PACKET_LOSS_CRITICAL_PERCENT:
+
+        severity = "critical"
+
+    else:
+
+        severity = "warning"
+
+    # ---------------------------------------------------------
+    # ایجاد / بروزرسانی Incident
+    # ---------------------------------------------------------
+
+    alert, created = raise_alert(
+        alert_key=alert_key,
+        alert_type="packet_loss",
+        severity=severity,
+        status="degraded",
+        device=device,
+        title=f"Packet loss detected for {target}",
+        message=(
+            f"Packet loss to {target} is "
+            f"{packet_loss}%. "
+            f"Warning threshold: "
+            f"{PACKET_LOSS_WARNING_PERCENT}%."
+        ),
+    )
+
+    return {
+        "alert": alert,
+        "status": "degraded",
+        "severity": severity,
+        "created": created,
+        "packet_loss": packet_loss,
+    }
 
 
 # --------------------------------------------------------------------------
@@ -287,7 +802,12 @@ def dashboard_view(request):
 
     gateway_ip = get_default_gateway()
 
-    services = run_service_checks(gateway_ip)
+    settings_obj = SystemSettings.load()
+
+    services = run_service_checks(
+        gateway_ip,
+        settings_obj
+    )
 
     health_score = calculate_health_score(
         availability=availability,
@@ -364,73 +884,146 @@ def ping_api(request):
     result = record_ping(target, user=request.user, device=device)
     return JsonResponse(result)
 
+def sync_service_alert(service):
+    """
+    وضعیت یک Service را با سیستم Incident/Alert هماهنگ می‌کند.
+
+    status سرویس در services.py:
+        success -> سرویس سالم
+        warning -> سرویس Degraded
+        danger  -> سرویس Down
+
+    وضعیت Alert:
+        success -> resolve
+        warning -> degraded
+        danger  -> down
+
+    برای هر Service یک alert_key مستقل داریم.
+    """
+
+    service_name = service.get("name")
+
+    if not service_name:
+        return None
+
+    service_status = service.get("status")
+    success = service.get("success", False)
+    latency_ms = service.get("latency_ms")
+    message = service.get("message", "")
+
+    # ---------------------------------------------------------
+    # Alert key
+    # ---------------------------------------------------------
+
+    alert_key = f"service:{service_name}"
+
+    # ---------------------------------------------------------
+    # Service سالم
+    # ---------------------------------------------------------
+
+    if success and service_status == "success":
+
+        resolved_alert = resolve_alert(
+            alert_key=alert_key,
+            message=(
+                f"{service_name} recovered successfully."
+                + (
+                    f" Current latency: {latency_ms} ms."
+                    if latency_ms is not None
+                    else ""
+                )
+            ),
+        )
+
+        return {
+            "alert": resolved_alert,
+            "status": "resolved" if resolved_alert else "healthy",
+        }
+
+    # ---------------------------------------------------------
+    # Service Degraded
+    # ---------------------------------------------------------
+
+    if service_status == "warning":
+
+        alert, created = raise_alert(
+            alert_key=alert_key,
+            alert_type="service_down",
+            severity="warning",
+            status="degraded",
+            title=f"{service_name} degraded",
+            message=(
+                f"{service_name} is responding slower than expected. "
+                f"{message}"
+                + (
+                    f" Latency: {latency_ms} ms."
+                    if latency_ms is not None
+                    else ""
+                )
+            ),
+        )
+
+        return {
+            "alert": alert,
+            "status": "degraded",
+            "created": created,
+        }
+
+    # ---------------------------------------------------------
+    # Service Down
+    # ---------------------------------------------------------
+
+    if service_status == "danger" or not success:
+
+        alert, created = raise_alert(
+            alert_key=alert_key,
+            alert_type="service_down",
+            severity="critical",
+            status="down",
+            title=f"{service_name} is down",
+            message=(
+                f"{service_name} is unavailable. "
+                f"{message}"
+            ),
+        )
+
+        return {
+            "alert": alert,
+            "status": "down",
+            "created": created,
+        }
+
+    return None
+
 
 @login_required
 def services_api(request):
+    if not request.user.is_authenticated:
+        return JsonResponse(
+            {
+                "success": False,
+                "message": "Authentication required"
+            },
+            status=401
+        )
+
+    settings_obj = SystemSettings.load()
 
     gateway_ip = get_default_gateway()
 
-    services = run_service_checks(gateway_ip)
+    services = run_service_checks(
+        gateway_ip,
+        settings_obj
+    )
 
-    for service in services:
-
-        name = service["name"]
-        status = service["status"]
-
-        alert_key = f"service:{name}"
-
-        # --------------------------------------------
-        # Service is healthy
-        # --------------------------------------------
-
-        if status == "success":
-
-            resolve_alert(
-                alert_key=alert_key,
-                message=(
-                    f"{name} recovered and is operating normally."
-                ),
-            )
-
-            continue
-
-        # --------------------------------------------
-        # Service is degraded
-        # --------------------------------------------
-
-        if status == "warning":
-
-            raise_alert(
-                alert_key=alert_key,
-                alert_type="service_down",
-                severity="warning",
-                status="degraded",
-                device=None,
-                title=f"{name} performance degraded",
-                message=service["message"],
-            )
-
-            continue
-
-        # --------------------------------------------
-        # Service is down
-        # --------------------------------------------
-
-        if status == "danger":
-
-            raise_alert(
-                alert_key=alert_key,
-                alert_type="service_down",
-                severity="critical",
-                status="down",
-                device=None,
-                title=f"{name} is down",
-                message=service["message"],
-            )
+    process_service_alerts(
+        services
+    )
 
     return JsonResponse({
         "services": services
     })
+
 
 # --------------------------------------------------------------------------
 # Devices
@@ -470,15 +1063,166 @@ def device_detail_view(request, device_id):
 # Alerts
 # --------------------------------------------------------------------------
 
+def process_service_alerts(services):
+    """
+    وضعیت Serviceها را بررسی کرده و Alertهای مربوطه را
+    با استفاده از Hysteresis Engine مدیریت می‌کند.
+    """
+
+    settings_obj = SystemSettings.load()
+
+    failure_threshold = (
+        settings_obj.failure_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
+
+    recovery_threshold = (
+        settings_obj.recovery_threshold
+        if settings_obj.hysteresis_enabled
+        else 1
+    )
+
+    results = []
+
+    for service in services:
+
+        name = service.get("name")
+
+        success = service.get("success", False)
+
+        latency = service.get("latency_ms")
+
+        message = service.get(
+            "message",
+            "",
+        )
+
+        if not name:
+            continue
+
+        alert_key = f"service:{name}"
+
+        # ======================================================
+        # Service DOWN
+        # ======================================================
+
+        if not success:
+
+            result = process_failure(
+                alert_key=alert_key,
+                alert_type="service_down",
+                title=f"{name} service is down",
+                message=(
+                    f"{name} check failed: "
+                    f"{message}"
+                ),
+                severity="critical",
+                status="down",
+                failure_threshold=failure_threshold,
+                value=None,
+            )
+
+        # ======================================================
+        # Service DEGRADED
+        # ======================================================
+
+        elif service.get("status") == "warning":
+
+            result = process_failure(
+                alert_key=alert_key,
+                alert_type="service_down",
+                title=f"{name} service is degraded",
+                message=(
+                    f"{name} is responding slowly. "
+                    f"Latency: {latency} ms."
+                ),
+                severity="warning",
+                status="degraded",
+                failure_threshold=failure_threshold,
+                value=latency,
+            )
+
+        # ======================================================
+        # Service HEALTHY
+        # ======================================================
+
+        else:
+
+            recovery = process_recovery(
+                alert_key=alert_key,
+                recovery_threshold=recovery_threshold,
+                recovery_message=(
+                    f"{name} service has recovered."
+                ),
+            )
+
+            result = {
+                "alert": recovery["alert"],
+                "resolved": recovery["resolved"],
+                "recovery_count": recovery[
+                    "recovery_count"
+                ],
+            }
+
+        results.append({
+            "service": name,
+            "result": result,
+        })
+
+    return results
+
+
 @login_required
 def alerts_view(request):
-    alerts = Alert.objects.all()
-    severity = request.GET.get("severity")
-    if severity in dict(Alert.SEVERITY_CHOICES):
-        alerts = alerts.filter(severity=severity)
-    alerts = alerts[:200]
-    return render(request, "alerts/list.html", {"alerts": alerts, "severity": severity})
+    severity = request.GET.get("severity", "").strip().lower()
 
+    valid_severities = {
+        choice[0]
+        for choice in Alert.SEVERITY_CHOICES
+    }
+
+    if severity not in valid_severities:
+        severity = ""
+
+
+    alerts_qs = (
+        Alert.objects
+        .select_related("device")
+        .all()
+    )
+
+    if severity:
+        alerts_qs = alerts_qs.filter(
+            severity=severity
+        )
+
+    alerts_qs = alerts_qs.order_by(
+        "-last_seen_at",
+        "-created_at",
+    )
+
+    total_alert_count = Alert.objects.count()
+
+    active_alert_count = Alert.objects.filter(
+        is_resolved=False
+    ).count()
+
+    alerts = alerts_qs[:200]
+
+    context = {
+        "alerts": alerts,
+        "severity": severity,
+
+        "total_alert_count": total_alert_count,
+        "active_alert_count": active_alert_count,
+    }
+
+    return render(
+        request,
+        "alerts/list.html",
+        context,
+    )
 
 @login_required
 def alert_detail_view(request, alert_id):
@@ -570,22 +1314,171 @@ def dns_lookup_view(request):
 
 @login_required
 def settings_view(request):
+
     settings_obj = SystemSettings.load()
+
     if request.method == "POST":
-        settings_obj.site_name = request.POST.get("site_name", "").strip() or settings_obj.site_name
-        settings_obj.timezone_name = request.POST.get("timezone_name", settings_obj.timezone_name)
+
+        # ======================================================
+        # General
+        # ======================================================
+
+        settings_obj.site_name = (
+            request.POST.get("site_name", "").strip()
+            or settings_obj.site_name
+        )
+
+        settings_obj.timezone_name = (
+            request.POST.get(
+                "timezone_name",
+                settings_obj.timezone_name
+            )
+        )
+
         try:
             settings_obj.poll_interval_seconds = max(
-                5, int(request.POST.get("poll_interval_seconds", settings_obj.poll_interval_seconds))
+                5,
+                int(
+                    request.POST.get(
+                        "poll_interval_seconds",
+                        settings_obj.poll_interval_seconds
+                    )
+                )
             )
         except (TypeError, ValueError):
             pass
-        settings_obj.scan_subnet = request.POST.get("scan_subnet", "").strip() or settings_obj.scan_subnet
-        settings_obj.save()
-        messages.success(request, "تنظیمات با موفقیت ذخیره شد.")
-        return redirect("settings")
-    return render(request, "settings/general.html", {"settings": settings_obj})
 
+        settings_obj.scan_subnet = (
+            request.POST.get(
+                "scan_subnet",
+                ""
+            ).strip()
+            or settings_obj.scan_subnet
+        )
+
+        # ======================================================
+        # Service Monitoring
+        # ======================================================
+
+        dns_hostname = request.POST.get(
+            "dns_hostname",
+            ""
+        ).strip()
+
+        web_url = request.POST.get(
+            "web_url",
+            ""
+        ).strip()
+
+        tcp_host = request.POST.get(
+            "tcp_host",
+            ""
+        ).strip()
+
+        if dns_hostname:
+            settings_obj.dns_hostname = dns_hostname
+
+        if web_url:
+            settings_obj.web_url = web_url
+
+        if tcp_host:
+            settings_obj.tcp_host = tcp_host
+
+        try:
+            tcp_port = int(
+                request.POST.get(
+                    "tcp_port",
+                    settings_obj.tcp_port
+                )
+            )
+
+            if 1 <= tcp_port <= 65535:
+                settings_obj.tcp_port = tcp_port
+
+        except (TypeError, ValueError):
+            pass
+
+        # ======================================================
+        # Hysteresis
+        # ======================================================
+
+        settings_obj.hysteresis_enabled = (
+            request.POST.get("hysteresis_enabled")
+            == "on"
+        )
+
+        try:
+            settings_obj.failure_threshold = max(
+                1,
+                int(
+                    request.POST.get(
+                        "failure_threshold",
+                        settings_obj.failure_threshold
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            settings_obj.recovery_threshold = max(
+                1,
+                int(
+                    request.POST.get(
+                        "recovery_threshold",
+                        settings_obj.recovery_threshold
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+
+        try:
+            settings_obj.high_latency_warning_ms = max(
+                1,
+                float(
+                    request.POST.get(
+                        "high_latency_warning_ms",
+                        settings_obj.high_latency_warning_ms
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            settings_obj.packet_loss_warning_percent = min(
+                100,
+                max(
+                    0,
+                    float(
+                        request.POST.get(
+                            "packet_loss_warning_percent",
+                            settings_obj.packet_loss_warning_percent
+                        )
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+        settings_obj.save()
+
+        messages.success(
+            request,
+            "تنظیمات با موفقیت ذخیره شد."
+        )
+
+        return redirect("settings")
+
+    return render(
+        request,
+        "settings/general.html",
+        {
+            "settings": settings_obj
+        }
+    )
 
 @login_required
 def settings_notifications_view(request):

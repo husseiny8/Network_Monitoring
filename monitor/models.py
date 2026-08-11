@@ -107,16 +107,8 @@ class Alert(models.Model):
         ("resolved", "Resolved"),
     ]
 
-    # شناسه منطقی Incident
-    # مثال:
-    # internet:8.8.8.8
-    # device:15:down
-    # service:DNS
-    alert_key = models.CharField(
-        max_length=255,
-        db_index=True,
-    )
 
+    alert_key = models.CharField(max_length=255,db_index=True,)
     device = models.ForeignKey(
         Device,
         on_delete=models.CASCADE,
@@ -125,60 +117,19 @@ class Alert(models.Model):
         related_name="alerts",
     )
 
-    alert_type = models.CharField(
-        max_length=30,
-        choices=ALERT_TYPE_CHOICES,
-    )
-
-    severity = models.CharField(
-        max_length=10,
-        choices=SEVERITY_CHOICES,
-        default="info",
-    )
-
-    status = models.CharField(
-        max_length=20,
-        choices=STATUS_CHOICES,
-        default="down",
-    )
-
-    title = models.CharField(
-        max_length=200
-    )
-
-    message = models.TextField(
-        blank=True,
-        default=""
-    )
-
-    is_resolved = models.BooleanField(
-        default=False
-    )
-
-    # اولین زمانی که مشکل مشاهده شد
-    created_at = models.DateTimeField(
-        auto_now_add=True
-    )
-
-    # آخرین باری که مشکل مشاهده شد
-    last_seen_at = models.DateTimeField(
-        auto_now=True
-    )
-
-    # زمان رفع مشکل
-    resolved_at = models.DateTimeField(
-        null=True,
-        blank=True
-    )
-
-    # تعداد دفعاتی که این Incident مشاهده شده
-    occurrence_count = models.PositiveIntegerField(
-        default=1
-    )
+    alert_type = models.CharField(max_length=30,choices=ALERT_TYPE_CHOICES,)
+    severity = models.CharField(max_length=10,choices=SEVERITY_CHOICES,default="info",)
+    status = models.CharField(max_length=20,choices=STATUS_CHOICES,default="down",)
+    title = models.CharField(max_length=200)
+    message = models.TextField(blank=True,default="")
+    is_resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_seen_at = models.DateTimeField(auto_now=True)
+    resolved_at = models.DateTimeField(null=True,blank=True)
+    occurrence_count = models.PositiveIntegerField(default=1)
 
     class Meta:
         ordering = ["-created_at"]
-
         constraints = [
             models.UniqueConstraint(
                 fields=["alert_key"],
@@ -192,9 +143,6 @@ class Alert(models.Model):
 
     @property
     def duration_seconds(self):
-        """
-        مدت زمان Incident را بر حسب ثانیه برمی‌گرداند.
-        """
 
         end_time = self.resolved_at or timezone.now()
 
@@ -207,12 +155,8 @@ class Alert(models.Model):
 
     @property
     def duration_display(self):
-        """
-        نمایش خوانا برای مدت Incident.
-        """
 
         seconds = self.duration_seconds
-
         days, seconds = divmod(seconds, 86400)
         hours, seconds = divmod(seconds, 3600)
         minutes, seconds = divmod(seconds, 60)
@@ -229,9 +173,6 @@ class Alert(models.Model):
         return f"{seconds}s"
 
     def resolve(self, message=None):
-        """
-        Incident را به حالت Resolved می‌برد.
-        """
 
         if self.is_resolved:
             return self
@@ -269,14 +210,42 @@ class Alert(models.Model):
         return "info"
 
 class SystemSettings(models.Model):
-    site_name = models.CharField(max_length=100, default="Network Monitor")
-    timezone_name = models.CharField(max_length=50, default="Asia/Tehran")
+
+    site_name = models.CharField(max_length=100,default="Network Monitor")
+    timezone_name = models.CharField(max_length=50,default="Asia/Tehran")
     poll_interval_seconds = models.PositiveIntegerField(default=30)
-    scan_subnet = models.CharField(max_length=50, default="192.168.1.1/24")
-    ping_target = models.CharField(max_length=100, default="8.8.8.8")
+    scan_subnet = models.CharField(max_length=50,default="192.168.1.1/24")
+    ping_target = models.CharField(max_length=100,default="8.8.8.8")
+    # ==========================================================
+    # Service Monitoring
+    # ==========================================================
+
+    dns_hostname = models.CharField(max_length=255,default="google.com")
+    web_url = models.URLField(max_length=500,default="https://www.google.com")
+    tcp_host = models.CharField(max_length=255,default="www.google.com")
+    tcp_port = models.PositiveIntegerField(default=443)
+    # --------------------------------------------------
+    # Notification Settings
+    # --------------------------------------------------
     notify_email = models.BooleanField(default=True)
     notify_in_app = models.BooleanField(default=True)
     notify_on_critical = models.BooleanField(default=True)
+    # --------------------------------------------------
+    # Alert Hysteresis
+    # --------------------------------------------------
+    hysteresis_enabled = models.BooleanField(default=True,help_text="Enable consecutive failure/recovery confirmation.")
+    failure_threshold = models.PositiveIntegerField(default=1,help_text="Number of consecutive failures required to trigger an alert.")
+    recovery_threshold = models.PositiveIntegerField(default=1,help_text="Number of consecutive successful checks required to recover an alert.")
+    # --------------------------------------------------
+    # Packet Loss Thresholds
+    # --------------------------------------------------
+    packet_loss_warning_percent = models.FloatField(default=10.0,help_text="Packet loss percentage that triggers a warning.")
+    packet_loss_critical_percent = models.FloatField(default=30.0,help_text="Packet loss percentage that triggers a critical alert.")
+    # --------------------------------------------------
+    # Latency Thresholds
+    # --------------------------------------------------
+    high_latency_warning_ms = models.FloatField(default=200.0,help_text="Latency in milliseconds that triggers a warning.")
+    high_latency_critical_ms = models.FloatField(default=500.0,help_text="Latency in milliseconds that triggers a critical alert.")
 
     class Meta:
         verbose_name = "System settings"
@@ -289,3 +258,31 @@ class SystemSettings(models.Model):
     def load(cls):
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class AlertState(models.Model):
+
+    alert_key = models.CharField(max_length=255,unique=True,db_index=True,)
+    consecutive_failures = models.PositiveIntegerField(default=0,)
+    consecutive_successes = models.PositiveIntegerField(default=0,)
+    last_status = models.CharField(max_length=20,blank=True,default="",)
+    last_severity = models.CharField(max_length=10,blank=True,default="",)
+    last_value = models.FloatField(null=True,blank=True,)
+    last_message = models.TextField(blank=True,default="",)
+    updated_at = models.DateTimeField(auto_now=True,)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self):
+        return (
+            f"{self.alert_key} "
+            f"(failures={self.consecutive_failures}, "
+            f"successes={self.consecutive_successes})"
+        )
+
+    def reset_failures(self):
+        self.consecutive_failures = 0
+
+    def reset_successes(self):
+        self.consecutive_successes = 0

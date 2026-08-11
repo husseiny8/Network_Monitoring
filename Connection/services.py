@@ -4,19 +4,11 @@ import platform
 import subprocess
 import ping3
 import requests
-from django.db import connection as db_connection
-from django.db.utils import Error as DatabaseError
-
-DNS_HOSTNAME = "google.com"
-WEB_URL = "https://www.google.com"
-TCP_HOST = "www.google.com"
-TCP_PORT = 443
 
 DEGRADED_THRESHOLD_MS = {
     "DNS": 200,
     "Web Server": 1000,
     "TCP Port": 300,
-    "Database": 100,
     "Gateway": 50,
 }
 
@@ -40,7 +32,7 @@ def _result(name, success, latency_ms, message):
     }
 
 
-def check_dns(hostname=DNS_HOSTNAME, port=443, timeout=3):
+def check_dns(hostname, port=443, timeout=3):
     start = time.monotonic()
     old_timeout = socket.getdefaulttimeout()
     try:
@@ -54,7 +46,7 @@ def check_dns(hostname=DNS_HOSTNAME, port=443, timeout=3):
     return _result("DNS", True, latency_ms, "OK")
 
 
-def check_web(url=WEB_URL, timeout=4):
+def check_web(url, timeout=4):
     """Full HTTP(S) GET - exercises DNS + TCP + TLS + the actual HTTP
     response, so a failure here with DNS/TCP both green usually means
     the site itself (or its certificate) is the problem."""
@@ -71,7 +63,7 @@ def check_web(url=WEB_URL, timeout=4):
     return _result("Web Server", success, latency_ms if success else None, message)
 
 
-def check_tcp(host=TCP_HOST, port=TCP_PORT, timeout=2):
+def check_tcp(host, port, timeout=2):
     """Raw TCP connect with no HTTP/TLS on top. Sits between DNS and Web
     Server: tells you whether a firewall/port block is the issue when
     DNS resolves fine but the full HTTP check above fails."""
@@ -87,18 +79,6 @@ def check_tcp(host=TCP_HOST, port=TCP_PORT, timeout=2):
         return _result("TCP Port", False, None, str(exc))
     latency_ms = round((time.monotonic() - start) * 1000, 1)
     return _result("TCP Port", True, latency_ms, f"OK (port {port})")
-
-
-def check_database():
-    start = time.monotonic()
-    try:
-        with db_connection.cursor() as cursor:
-            cursor.execute("SELECT 1")
-            cursor.fetchone()
-    except DatabaseError as exc:
-        return _result("Database", False, None, str(exc))
-    latency_ms = round((time.monotonic() - start) * 1000, 1)
-    return _result("Database", True, latency_ms, "OK")
 
 
 def gateway_ip_from_subnet(scan_subnet):
@@ -151,11 +131,14 @@ def get_default_gateway():
 
     return None
 
-def run_all(gateway_ip):
+def run_all(gateway_ip, settings_obj=None):
+    if settings_obj is None:
+        from monitor.models import SystemSettings
+        settings_obj = SystemSettings.load()
+
     return [
-        check_dns(),
-        check_web(),
-        check_tcp(),
-        check_database(),
+        check_dns(hostname=settings_obj.dns_hostname),
+        check_web(url=settings_obj.web_url),
+        check_tcp(host=settings_obj.tcp_host,port=settings_obj.tcp_port),
         check_gateway(gateway_ip),
     ]
