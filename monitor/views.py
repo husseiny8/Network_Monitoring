@@ -6,6 +6,7 @@ from django.db.models import Avg
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from Connection.dns_lookup import lookup as dns_lookup
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
 from Connection.services import gateway_ip_from_subnet,get_default_gateway, run_all as run_service_checks
@@ -26,20 +27,19 @@ PERIOD_LABELS = {
 # --------------------------------------------------------------------------
 
 def sync_devices(subnet=None):
-    """Run an ARP scan and reconcile the results into the Device table,
-    raising Alert rows for devices that go offline/come back online.
-
-    Device alert behavior:
-        ONLINE -> OFFLINE:
-            Create one device_down alert.
-
-        OFFLINE -> OFFLINE:
-            Keep the same alert open and increase occurrence_count.
-
-        OFFLINE -> ONLINE:
-            Resolve the device_down alert.
-            Create a "back online" info alert.
     """
+    Scan the LAN and synchronize Device states.
+
+    ONLINE -> OFFLINE:
+        Open/update a device-down Incident.
+
+    OFFLINE -> OFFLINE:
+        Update the same Incident.
+
+    OFFLINE -> ONLINE:
+        Resolve the existing Incident.
+    """
+
     if subnet is None:
         subnet = SystemSettings.load().scan_subnet
 
@@ -48,71 +48,148 @@ def sync_devices(subnet=None):
     except Exception as exc:
         return False, str(exc)
 
-    found_by_ip = {item["ip"]: item.get("mac", "") for item in found}
-    existing_by_ip = {d.ip_address: d for d in Device.objects.all()}
+    found_by_ip = {
+        item["ip"]: item.get("mac", "")
+        for item in found
+    }
+
+    existing_by_ip = {
+        d.ip_address: d
+        for d in Device.objects.all()
+    }
+
+    # --------------------------------------------------
+    # Devices found by ARP scan
+    # --------------------------------------------------
 
     for ip, mac in found_by_ip.items():
+
         existing = existing_by_ip.get(ip)
+
         if existing:
+
             was_offline = not existing.is_online
-            existing.mac_address = mac or existing.mac_address
+
+            existing.mac_address = (
+                mac or existing.mac_address
+            )
+
             existing.is_online = True
-            existing.save()
+            existing.save(
+                update_fields=[
+                    "mac_address",
+                    "is_online",
+                    "last_seen",
+                ]
+            )
+
+            # Recovery
             if was_offline:
-                raise_alert(
-                    alert_type="device_restored",
-                    device=existing,
-                    severity="info",
-                    title=f"{existing.display_name} is back online",
-                    message=f"{existing.ip_address} responded to the latest network scan.",
+
+                resolve_alert(
+                    alert_key=f"device:{existing.pk}",
+                    message=(
+                        f"{existing.ip_address} "
+                        f"responded to the network scan again."
+                    ),
                 )
+
         else:
-            Device.objects.create(ip_address=ip, mac_address=mac, is_online=True)
+
+            Device.objects.create(
+                ip_address=ip,
+                mac_address=mac,
+                is_online=True,
+            )
+
+    # --------------------------------------------------
+    # Devices missing from scan
+    # --------------------------------------------------
 
     for ip, existing in existing_by_ip.items():
-        if ip not in found_by_ip and existing.is_online:
-            existing.is_online = False
-            existing.save()
-            raise_alert(
-                alert_type="device_restored",
-                device=existing,
-                severity="critical",
-                title=f"{existing.display_name} disconnected",
-                message=f"{existing.ip_address} did not respond to the latest network scan.",
-            )
+
+        if ip in found_by_ip:
+            continue
+
+        if not existing.is_online:
+            # Already offline.
+            # Do NOT create another Incident.
+            continue
+
+        existing.is_online = False
+
+        existing.save(
+            update_fields=[
+                "is_online",
+                "last_seen",
+            ]
+        )
+
+        raise_alert(
+            alert_key=f"device:{existing.pk}",
+            alert_type="device_down",
+            device=existing,
+            severity="critical",
+            status="down",
+            title=f"{existing.display_name} disconnected",
+            message=(
+                f"{existing.ip_address} did not respond "
+                f"to the latest network scan."
+            ),
+        )
 
     return True, None
 
-def record_ping(target, user=None, device=None):
-    """Ping `target`, persist it, and keep a single open "connectivity lost"
-    alert in sync (opened on first failure, resolved + logged on recovery)
-    instead of creating one alert per failed ping."""
 
-    target = SystemSettings.objects.all().first().ping_target
-    result = ping_and_store(target, user=user, device=device)
+def record_ping(target=None, user=None, device=None):
+    """
+    Perform a ping and synchronize the Internet Incident state.
+    """
 
-    open_alert = Alert.objects.filter(
-        title="Internet connectivity lost",
-        is_resolved=False
-    ).first()
+    settings_obj = SystemSettings.load()
+
+    if target is None:
+        target = settings_obj.ping_target
+
+    result = ping_and_store(
+        target,
+        user=user,
+        device=device,
+    )
+
+    alert_key = f"internet:{target}"
+
+    # --------------------------------------------------
+    # Internet DOWN
+    # --------------------------------------------------
 
     if not result["success"]:
-        if not open_alert:
-            raise_alert(
-                alert_type="internet_down",
-                severity="critical",
-                device=None,
-                title="Internet connectivity lost",
-                message=f"Ping to {target} failed: {result['message']}",
-            )
-    elif open_alert:
-        open_alert.resolve()
+
         raise_alert(
-            alert_type="internet_restored",
+            alert_key=alert_key,
+            alert_type="internet_down",
+            severity="critical",
+            status="down",
             device=None,
-            severity="info",
-            title="Internet connectivity restored",
-            message=f"Ping to {target} succeeded again ({result['latency']} ms).",
+            title="Internet connectivity lost",
+            message=(
+                f"Ping to {target} failed: "
+                f"{result.get('message', 'Unknown error')}"
+            ),
+        )
+
+    # --------------------------------------------------
+    # Internet RECOVERED
+    # --------------------------------------------------
+
+    else:
+
+        resolve_alert(
+            alert_key=alert_key,
+            message=(
+                f"Ping to {target} succeeded again "
+                f"({result.get('latency')} ms)."
+            ),
         )
 
     return result
@@ -288,16 +365,72 @@ def ping_api(request):
     return JsonResponse(result)
 
 
+@login_required
 def services_api(request):
-    if not request.user.is_authenticated:
-        return JsonResponse(
-            {"success": False, "message": "Authentication required"}, status=401
-        )
 
     gateway_ip = get_default_gateway()
-    services = run_service_checks(gateway_ip)
-    return JsonResponse({"services": services})
 
+    services = run_service_checks(gateway_ip)
+
+    for service in services:
+
+        name = service["name"]
+        status = service["status"]
+
+        alert_key = f"service:{name}"
+
+        # --------------------------------------------
+        # Service is healthy
+        # --------------------------------------------
+
+        if status == "success":
+
+            resolve_alert(
+                alert_key=alert_key,
+                message=(
+                    f"{name} recovered and is operating normally."
+                ),
+            )
+
+            continue
+
+        # --------------------------------------------
+        # Service is degraded
+        # --------------------------------------------
+
+        if status == "warning":
+
+            raise_alert(
+                alert_key=alert_key,
+                alert_type="service_down",
+                severity="warning",
+                status="degraded",
+                device=None,
+                title=f"{name} performance degraded",
+                message=service["message"],
+            )
+
+            continue
+
+        # --------------------------------------------
+        # Service is down
+        # --------------------------------------------
+
+        if status == "danger":
+
+            raise_alert(
+                alert_key=alert_key,
+                alert_type="service_down",
+                severity="critical",
+                status="down",
+                device=None,
+                title=f"{name} is down",
+                message=service["message"],
+            )
+
+    return JsonResponse({
+        "services": services
+    })
 
 # --------------------------------------------------------------------------
 # Devices
@@ -409,6 +542,26 @@ def report_csv_view(request, period):
     for p in pings_in_period:
         writer.writerow([p.target, p.success, p.latency_ms, p.message, p.created_at.isoformat()])
     return response
+
+
+# --------------------------------------------------------------------------
+# Tools
+# --------------------------------------------------------------------------
+
+@login_required
+def dns_lookup_view(request):
+    """DNS lookup tool: a hostname runs forward lookups across the common
+    record types (A, AAAA, CNAME, MX, NS, TXT, SOA); an IP address runs a
+    reverse (PTR) lookup instead. dns_lookup() decides which from the
+    shape of the input, so this view just passes the query through and
+    renders whichever result comes back."""
+    query = request.GET.get("q", "").strip()
+    lookup_result = dns_lookup(query) if query else None
+    return render(
+        request,
+        "tools/dns_lookup.html",
+        {"query": query, "lookup_result": lookup_result},
+    )
 
 
 # --------------------------------------------------------------------------

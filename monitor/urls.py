@@ -7,6 +7,7 @@ from monitor.views import (
     device_detail_view,
     devices_scan_view,
     devices_view,
+    dns_lookup_view,
     ping_api,
     report_csv_view,
     report_detail_view,
@@ -38,4 +39,6 @@ urlpatterns = [
     path("reports", reports_view, name="reports"),
     path("reports/<str:period>", report_detail_view, name="report_detail"),
     path("reports/<str:period>/export.csv", report_csv_view, name="report_csv"),
+
+    path("dns-lookup", dns_lookup_view, name="dns_lookup"),
 ]

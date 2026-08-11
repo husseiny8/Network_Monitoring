@@ -4,7 +4,7 @@ from monitor.models import Ping
 def ping_and_store(ip, user=None, device=None):
     try:
         ping_time = ping3.ping(ip)
-        if ping_time is None:
+        if ping_time is None or ping_time == 0:
             result = {
                 "success": False,
                 "latency": None,

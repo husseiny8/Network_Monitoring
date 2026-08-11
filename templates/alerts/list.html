@@ -1,28 +1,371 @@
 {% extends "base.html" %}
+
 {% block title %}هشدارها | پایش شبکه{% endblock %}
+
 {% block content %}
-<section class="page-header">
-  <div>
-    <h1>هشدارها</h1>
-    <p class="muted">ثبت و مدیریت رخدادهای شبکه و سرویس‌ها.</p>
-  </div>
-  <div class="header-actions">
-    <a href="{% url "alerts" %}" class="btn secondary{% if not severity %} active{% endif %}">همه</a>
-    <a href="{% url "alerts" %}?severity=critical" class="btn secondary{% if severity == "critical" %} active{% endif %}">بحرانی</a>
-  </div>
+
+<section class="hero-card">
+    <div>
+        <p class="eyebrow">Network Operations Center</p>
+
+        <h1>هشدارهای شبکه</h1>
+
+        <p class="muted">
+            مشاهده و پیگیری رخدادهای شبکه، سرویس‌ها و دستگاه‌ها
+        </p>
+    </div>
 </section>
 
-<section class="stack">
-  {% for alert in alerts %}
-  <a href="{% url "alert_detail" alert.id %}" class="alert-card {{ alert.severity }}">
-    <div>
-      <strong>{{ alert.device.display_name|default:"سامانه" }}</strong>
-      <p>{{ alert.title }}{% if alert.is_resolved %} (رفع‌شده){% endif %}</p>
-    </div>
-    <span class="badge {{ alert.badge_class }}">{{ alert.get_severity_display }}</span>
-  </a>
-  {% empty %}
-  <p class="muted">هیچ هشداری ثبت نشده است.</p>
-  {% endfor %}
+
+<section class="stats-grid">
+
+    <article class="stat-card">
+        <span class="stat-label">کل هشدارها</span>
+        <strong class="stat-value">
+            {{ alerts|length }}
+        </strong>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">هشدارهای فعال</span>
+
+        <strong class="stat-value">
+            {% with active_count=alerts|length %}
+                {{ active_count }}
+            {% endwith %}
+        </strong>
+    </article>
+
+    <article class="stat-card">
+        <span class="stat-label">نمایش فعلی</span>
+
+        <strong class="stat-value">
+            {% if severity %}
+                {{ severity|title }}
+            {% else %}
+                همه
+            {% endif %}
+        </strong>
+    </article>
+
 </section>
+
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+            <h2>فهرست رخدادها</h2>
+
+            <span class="muted small">
+                جدیدترین رخدادها در ابتدا نمایش داده می‌شوند.
+            </span>
+        </div>
+
+        <div class="alert-filters">
+
+            <a
+                href="{% url 'alerts' %}"
+                class="ghost-btn {% if not severity %}active{% endif %}">
+                همه
+            </a>
+
+            <a
+                href="?severity=critical"
+                class="ghost-btn {% if severity == 'critical' %}active{% endif %}">
+                بحرانی
+            </a>
+
+            <a
+                href="?severity=warning"
+                class="ghost-btn {% if severity == 'warning' %}active{% endif %}">
+                هشدار
+            </a>
+
+            <a
+                href="?severity=info"
+                class="ghost-btn {% if severity == 'info' %}active{% endif %}">
+                اطلاع
+            </a>
+
+        </div>
+
+    </div>
+
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>رخداد</th>
+                    <th>نوع</th>
+                    <th>شدت</th>
+                    <th>وضعیت</th>
+                    <th>تعداد</th>
+                    <th>شروع</th>
+                    <th>آخرین مشاهده</th>
+                    <th>مدت</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for alert in alerts %}
+
+                <tr
+                    class="
+                        alert-row
+                        {{ alert.severity }}
+                        {% if alert.is_resolved %}
+                            resolved
+                        {% endif %}
+                    "
+                >
+
+                    <!-- Incident -->
+                    <td>
+
+                        <a
+                            href="{% url 'alert_detail' alert.id %}"
+                            class="alert-title"
+                        >
+                            {{ alert.title }}
+                        </a>
+
+                        {% if alert.device %}
+
+                            <div class="muted small">
+                                {{ alert.device.display_name }}
+                                ·
+                                {{ alert.device.ip_address }}
+                            </div>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Type -->
+                    <td>
+
+                        <span class="muted">
+
+                            {% if alert.alert_type == "internet_down" %}
+                                اینترنت
+
+                            {% elif alert.alert_type == "device_down" %}
+                                دستگاه
+
+                            {% elif alert.alert_type == "service_down" %}
+                                سرویس
+
+                            {% elif alert.alert_type == "high_latency" %}
+                                Latency
+
+                            {% elif alert.alert_type == "packet_loss" %}
+                                Packet Loss
+
+                            {% else %}
+                                سیستم
+                            {% endif %}
+
+                        </span>
+
+                    </td>
+
+
+                    <!-- Severity -->
+                    <td>
+
+                        <span class="badge {{ alert.badge_class }}">
+                            {{ alert.get_severity_display }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- Status -->
+                    <td>
+
+                        {% if alert.is_resolved %}
+
+                            <span class="resolved-tag">
+                                ✓ رفع‌شده
+                            </span>
+
+                        {% elif alert.status == "degraded" %}
+
+                            <span class="warning-tag">
+                                ⚠ Degraded
+                            </span>
+
+                        {% elif alert.status == "down" %}
+
+                            <span class="active-tag">
+                                ● Down
+                            </span>
+
+                        {% else %}
+
+                            <span class="active-tag">
+                                فعال
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <!-- Occurrences -->
+                    <td>
+
+                        <span
+                            class="occurrence-count"
+                            title="تعداد دفعات مشاهده این Incident"
+                        >
+                            {{ alert.occurrence_count }}
+                        </span>
+
+                    </td>
+
+
+                    <!-- Created -->
+                    <td>
+
+                        <span title="{{ alert.created_at }}">
+                            {{ alert.created_at|timesince }}
+                            پیش
+                        </span>
+
+                    </td>
+
+
+                    <!-- Last seen -->
+                    <td>
+
+                        <span title="{{ alert.last_seen_at }}">
+                            {{ alert.last_seen_at|timesince }}
+                            پیش
+                        </span>
+
+                    </td>
+
+
+                    <!-- Duration -->
+                    <td>
+
+                        <span class="duration-value">
+                            {{ alert.duration_display }}
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                {% empty %}
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        class="muted"
+                        style="text-align:center;padding:30px;"
+                    >
+                        هیچ هشداری برای نمایش وجود ندارد.
+                    </td>
+
+                </tr>
+
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<style>
+
+.alert-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.alert-filters .ghost-btn.active {
+    font-weight: 700;
+    border-color: currentColor;
+}
+
+.alert-title {
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.alert-title:hover {
+    text-decoration: underline;
+}
+
+.occurrence-count {
+    display: inline-flex;
+    min-width: 30px;
+    height: 30px;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 999px;
+
+    background: #f3f4f6;
+    color: #374151;
+
+    font-weight: 700;
+}
+
+.duration-value {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+}
+
+.warning-tag,
+.active-tag,
+.resolved-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+
+    padding: 4px 9px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.warning-tag {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.active-tag {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.resolved-tag {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.alert-row.resolved {
+    opacity: 0.75;
+}
+
+</style>
+
 {% endblock %}

@@ -86,14 +86,13 @@ class Ping(models.Model):
 
 
 class Alert(models.Model):
+
     ALERT_TYPE_CHOICES = [
-        ("internet_down", "Internet Down"),
-        ("internet_restored", "Internet Restored"),
-        ("device_down", "Device Down"),
-        ("device_restored", "Device Restored"),
+        ("internet_down", "Internet"),
+        ("device_down", "Device"),
+        ("service_down", "Service"),
         ("high_latency", "High Latency"),
         ("packet_loss", "Packet Loss"),
-        ("service_down", "Service Down"),
     ]
 
     SEVERITY_CHOICES = [
@@ -102,6 +101,22 @@ class Alert(models.Model):
         ("info", "Info"),
     ]
 
+    STATUS_CHOICES = [
+        ("degraded", "Degraded"),
+        ("down", "Down"),
+        ("resolved", "Resolved"),
+    ]
+
+    # شناسه منطقی Incident
+    # مثال:
+    # internet:8.8.8.8
+    # device:15:down
+    # service:DNS
+    alert_key = models.CharField(
+        max_length=255,
+        db_index=True,
+    )
+
     device = models.ForeignKey(
         Device,
         on_delete=models.CASCADE,
@@ -109,30 +124,149 @@ class Alert(models.Model):
         blank=True,
         related_name="alerts",
     )
-    severity = models.CharField(max_length=10, choices=SEVERITY_CHOICES, default="info")
-    title = models.CharField(max_length=200)
-    message = models.TextField(blank=True, default="")
-    alert_type = models.CharField(max_length=30,choices=ALERT_TYPE_CHOICES,default="internet_down")
-    is_resolved = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    alert_type = models.CharField(
+        max_length=30,
+        choices=ALERT_TYPE_CHOICES,
+    )
+
+    severity = models.CharField(
+        max_length=10,
+        choices=SEVERITY_CHOICES,
+        default="info",
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="down",
+    )
+
+    title = models.CharField(
+        max_length=200
+    )
+
+    message = models.TextField(
+        blank=True,
+        default=""
+    )
+
+    is_resolved = models.BooleanField(
+        default=False
+    )
+
+    # اولین زمانی که مشکل مشاهده شد
+    created_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    # آخرین باری که مشکل مشاهده شد
+    last_seen_at = models.DateTimeField(
+        auto_now=True
+    )
+
+    # زمان رفع مشکل
+    resolved_at = models.DateTimeField(
+        null=True,
+        blank=True
+    )
+
+    # تعداد دفعاتی که این Incident مشاهده شده
+    occurrence_count = models.PositiveIntegerField(
+        default=1
+    )
 
     class Meta:
         ordering = ["-created_at"]
 
+        constraints = [
+            models.UniqueConstraint(
+                fields=["alert_key"],
+                condition=models.Q(is_resolved=False),
+                name="unique_open_alert_key",
+            )
+        ]
+
     def __str__(self):
         return self.title
 
-    def resolve(self):
+    @property
+    def duration_seconds(self):
+        """
+        مدت زمان Incident را بر حسب ثانیه برمی‌گرداند.
+        """
+
+        end_time = self.resolved_at or timezone.now()
+
+        return max(
+            0,
+            int(
+                (end_time - self.created_at).total_seconds()
+            )
+        )
+
+    @property
+    def duration_display(self):
+        """
+        نمایش خوانا برای مدت Incident.
+        """
+
+        seconds = self.duration_seconds
+
+        days, seconds = divmod(seconds, 86400)
+        hours, seconds = divmod(seconds, 3600)
+        minutes, seconds = divmod(seconds, 60)
+
+        if days:
+            return f"{days}d {hours}h"
+
+        if hours:
+            return f"{hours}h {minutes}m"
+
+        if minutes:
+            return f"{minutes}m {seconds}s"
+
+        return f"{seconds}s"
+
+    def resolve(self, message=None):
+        """
+        Incident را به حالت Resolved می‌برد.
+        """
+
+        if self.is_resolved:
+            return self
+
         self.is_resolved = True
+        self.status = "resolved"
         self.resolved_at = timezone.now()
-        self.save(update_fields=["is_resolved", "resolved_at"])
+
+        if message:
+            self.message = message
+
+        self.save(
+            update_fields=[
+                "is_resolved",
+                "status",
+                "resolved_at",
+                "message",
+                "last_seen_at",
+            ]
+        )
+
+        return self
 
     @property
     def badge_class(self):
-        # alert-card uses "critical/warning/info", badge uses "danger/warning/info"
-        return "danger" if self.severity == "critical" else self.severity
+        if self.status == "resolved":
+            return "success"
 
+        if self.severity == "critical":
+            return "danger"
+
+        if self.severity == "warning":
+            return "warning"
+
+        return "info"
 
 class SystemSettings(models.Model):
     site_name = models.CharField(max_length=100, default="Network Monitor")

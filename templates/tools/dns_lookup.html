@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}جستجوی DNS | پایش شبکه{% endblock %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>جستجوی DNS</h1>
+    <p class="muted">یک دامنه برای مشاهده رکوردهای A, AAAA, CNAME, MX, NS, TXT, SOA وارد کنید، یا یک آدرس IP برای reverse lookup (PTR).</p>
+  </div>
+</section>
+
+<section class="panel">
+  <form class="form-grid" method="get" action="{% url "dns_lookup" %}">
+    <label>دامنه یا آدرس IP
+      <input type="text" name="q" value="{{ query }}" placeholder="google.com یا 8.8.8.8" autofocus>
+    </label>
+    <div class="form-actions full-width">
+      <button class="btn primary" type="submit">جستجو</button>
+    </div>
+  </form>
+</section>
+
+{% if lookup_result %}
+  {% if lookup_result.kind == "forward" %}
+    {% with result=lookup_result.result %}
+    <section class="panel">
+      <div class="panel-header">
+        <h2>نتایج برای {{ result.hostname }}</h2>
+      </div>
+
+      {% if not result.exists %}
+        <p class="muted">{{ result.error }}</p>
+      {% else %}
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>نوع رکورد</th><th>مقدار</th><th>TTL</th></tr>
+            </thead>
+            <tbody>
+              {% for item in result.results %}
+                {% if item.found %}
+                  {% for value in item.records %}
+                  <tr>
+                    <td><span class="badge info">{{ item.record_type }}</span></td>
+                    <td class="mono">{{ value }}</td>
+                    <td>{{ item.ttl }}</td>
+                  </tr>
+                  {% endfor %}
+                {% elif item.error %}
+                  <tr>
+                    <td><span class="badge info">{{ item.record_type }}</span></td>
+                    <td class="muted">خطا: {{ item.error }}</td>
+                    <td>—</td>
+                  </tr>
+                {% else %}
+                  <tr>
+                    <td><span class="badge info">{{ item.record_type }}</span></td>
+                    <td class="muted">بدون رکورد</td>
+                    <td>—</td>
+                  </tr>
+                {% endif %}
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+    {% endwith %}
+  {% else %}
+    {% with result=lookup_result.result %}
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Reverse lookup برای {{ result.ip_address }}</h2>
+      </div>
+      {% if result.error %}
+        <p class="muted">خطا: {{ result.error }}</p>
+      {% elif not result.found %}
+        <p class="muted">هیچ رکورد PTR برای این آدرس یافت نشد.</p>
+      {% else %}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>نوع رکورد</th><th>Hostname</th></tr></thead>
+            <tbody>
+              {% for hostname in result.hostnames %}
+              <tr>
+                <td><span class="badge info">PTR</span></td>
+                <td class="mono">{{ hostname }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% endif %}
+    </section>
+    {% endwith %}
+  {% endif %}
+{% endif %}
+{% endblock %}

@@ -89,6 +89,7 @@ img{max-width:100%;display:block}
 .hero-card h1,.page-header h1,.panel h2,.panel h1{margin:0 0 10px}
 .muted{color:var(--muted)}
 .small{font-size:13px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;direction:ltr;text-align:left;unicode-bidi:embed}
 .hero-actions,.header-actions,.form-actions{display:flex;gap:10px;flex-wrap:wrap}
 .btn,.ghost-btn{
   display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:14px;

@@ -13,6 +13,7 @@
     <a href="{% url "devices" %}" class="nav-item{% if request.resolver_match.url_name == "devices" or request.resolver_match.url_name == "device_detail" %} active{% endif %}">دستگاه‌ها</a>
     <a href="{% url "alerts" %}" class="nav-item{% if request.resolver_match.url_name == "alerts" or request.resolver_match.url_name == "alert_detail" %} active{% endif %}">هشدارها</a>
     <a href="{% url "reports" %}" class="nav-item{% if request.resolver_match.url_name == "reports" or request.resolver_match.url_name == "report_detail" %} active{% endif %}">گزارش‌ها</a>
+    <a href="{% url "dns_lookup" %}" class="nav-item{% if request.resolver_match.url_name == "dns_lookup" %} active{% endif %}">جستجوی DNS</a>
     {% if request.user.is_staff %}
     <a href="{% url "users" %}" class="nav-item{% if request.resolver_match.url_name == "users" or request.resolver_match.url_name == "user_create" or request.resolver_match.url_name == "user_edit" %} active{% endif %}">کاربران</a>
     {% endif %}

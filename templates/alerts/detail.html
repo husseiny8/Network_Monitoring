@@ -1,26 +1,642 @@
 {% extends "base.html" %}
-{% block title %}جزئیات هشدار | پایش شبکه{% endblock %}
+
+{% block title %}
+جزئیات هشدار | پایش شبکه
+{% endblock %}
+
 {% block content %}
-<section class="panel">
-  <div class="panel-header">
-    <h1>{{ alert.title }}</h1>
-    <span class="badge {{ alert.badge_class }}">{{ alert.get_severity_display }}</span>
-  </div>
-  <div class="detail-list">
-    <div><span>دستگاه:</span><strong>{{ alert.device.display_name|default:"سامانه (بدون دستگاه مشخص)" }}</strong></div>
-    <div><span>شدت:</span><strong>{{ alert.get_severity_display }}</strong></div>
-    <div><span>زمان:</span><strong>{{ alert.created_at }}</strong></div>
-    <div><span>وضعیت:</span><strong>{% if alert.is_resolved %}رفع‌شده در {{ alert.resolved_at }}{% else %}رفع نشده{% endif %}</strong></div>
-  </div>
-  <div class="panel note">
-    <p>{{ alert.message|default:"توضیحات بیشتری برای این هشدار ثبت نشده است." }}</p>
-  </div>
-  {% if not alert.is_resolved %}
-  <form method="post" class="form-actions">
-    {% csrf_token %}
-    <input type="hidden" name="action" value="resolve">
-    <button class="btn primary" type="submit">علامت‌گذاری به‌عنوان رفع‌شده</button>
-  </form>
-  {% endif %}
+
+<section class="hero-card">
+
+    <div>
+
+        <p class="eyebrow">
+            Network Incident
+        </p>
+
+        <h1>
+            {{ alert.title }}
+        </h1>
+
+        <p class="muted">
+            جزئیات کامل رخداد و وضعیت فعلی آن
+        </p>
+
+    </div>
+
 </section>
+
+
+<section class="incident-grid">
+
+
+    <!-- Main status -->
+
+    <article class="panel incident-status-panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    وضعیت Incident
+                </h2>
+
+                <span class="muted small">
+                    وضعیت فعلی رخداد
+                </span>
+
+            </div>
+
+            <span class="badge {{ alert.badge_class }}">
+
+                {{ alert.get_severity_display }}
+
+            </span>
+
+        </div>
+
+
+        <div class="incident-status">
+
+            {% if alert.is_resolved %}
+
+                <div class="status-icon resolved">
+                    ✓
+                </div>
+
+                <div>
+
+                    <strong>
+                        Resolved
+                    </strong>
+
+                    <p class="muted">
+                        این رخداد برطرف شده است.
+                    </p>
+
+                </div>
+
+
+            {% elif alert.status == "degraded" %}
+
+                <div class="status-icon degraded">
+                    !
+                </div>
+
+                <div>
+
+                    <strong>
+                        Degraded
+                    </strong>
+
+                    <p class="muted">
+                        سرویس یا دستگاه در وضعیت کاهش عملکرد قرار دارد.
+                    </p>
+
+                </div>
+
+
+            {% elif alert.status == "down" %}
+
+                <div class="status-icon down">
+                    !
+                </div>
+
+                <div>
+
+                    <strong>
+                        Down
+                    </strong>
+
+                    <p class="muted">
+                        مشکل همچنان فعال است.
+                    </p>
+
+                </div>
+
+
+            {% else %}
+
+                <div class="status-icon">
+                    ?
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ alert.status|title }}
+                    </strong>
+
+                </div>
+
+            {% endif %}
+
+        </div>
+
+    </article>
+
+
+    <!-- Incident information -->
+
+    <article class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    اطلاعات Incident
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="details-grid">
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    شناسه
+                </span>
+
+                <strong>
+                    #{{ alert.id }}
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    نوع
+                </span>
+
+                <strong>
+
+                    {% if alert.alert_type == "internet_down" %}
+                        Internet
+
+                    {% elif alert.alert_type == "device_down" %}
+                        Device
+
+                    {% elif alert.alert_type == "service_down" %}
+                        Service
+
+                    {% elif alert.alert_type == "high_latency" %}
+                        High Latency
+
+                    {% elif alert.alert_type == "packet_loss" %}
+                        Packet Loss
+
+                    {% else %}
+                        System
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    وضعیت
+                </span>
+
+                <strong>
+
+                    {% if alert.is_resolved %}
+                        Resolved
+
+                    {% elif alert.status == "degraded" %}
+                        Degraded
+
+                    {% elif alert.status == "down" %}
+                        Down
+
+                    {% else %}
+                        {{ alert.status|title }}
+
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    تعداد مشاهده
+                </span>
+
+                <strong>
+                    {{ alert.occurrence_count }}
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    شروع Incident
+                </span>
+
+                <strong>
+                    {{ alert.created_at|date:"Y/m/d H:i:s" }}
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    آخرین مشاهده
+                </span>
+
+                <strong>
+                    {{ alert.last_seen_at|date:"Y/m/d H:i:s" }}
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    زمان رفع
+                </span>
+
+                <strong>
+
+                    {% if alert.resolved_at %}
+                        {{ alert.resolved_at|date:"Y/m/d H:i:s" }}
+                    {% else %}
+                        هنوز رفع نشده
+                    {% endif %}
+
+                </strong>
+
+            </div>
+
+
+            <div class="detail-item">
+
+                <span class="detail-label">
+                    مدت Incident
+                </span>
+
+                <strong class="duration-value">
+                    {{ alert.duration_display }}
+                </strong>
+
+            </div>
+
+
+        </div>
+
+    </article>
+
+
+    <!-- Device -->
+
+    {% if alert.device %}
+
+    <article class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    دستگاه مرتبط
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="device-info">
+
+            <div>
+
+                <span class="detail-label">
+                    نام دستگاه
+                </span>
+
+                <strong>
+                    {{ alert.device.display_name }}
+                </strong>
+
+            </div>
+
+
+            <div>
+
+                <span class="detail-label">
+                    IP Address
+                </span>
+
+                <strong>
+                    {{ alert.device.ip_address }}
+                </strong>
+
+            </div>
+
+
+            {% if alert.device.mac_address %}
+
+            <div>
+
+                <span class="detail-label">
+                    MAC Address
+                </span>
+
+                <strong>
+                    {{ alert.device.mac_address }}
+                </strong>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </article>
+
+    {% endif %}
+
+
+    <!-- Message -->
+
+    <article class="panel">
+
+        <div class="panel-header">
+
+            <div>
+
+                <h2>
+                    توضیحات
+                </h2>
+
+            </div>
+
+        </div>
+
+
+        <div class="alert-message">
+
+            {{ alert.message|linebreaks }}
+
+        </div>
+
+    </article>
+
+
+</section>
+
+
+<!-- Actions -->
+
+<section class="panel">
+
+    <div class="panel-header">
+
+        <div>
+
+            <h2>
+                عملیات
+            </h2>
+
+        </div>
+
+    </div>
+
+
+    <div class="incident-actions">
+
+        <a
+            href="{% url 'alerts' %}"
+            class="ghost-btn"
+        >
+            بازگشت به هشدارها
+        </a>
+
+
+        {% if not alert.is_resolved %}
+
+        <form
+            method="post"
+            style="display:inline;"
+        >
+
+            {% csrf_token %}
+
+            <button
+                type="submit"
+                name="action"
+                value="resolve"
+                class="danger-btn"
+            >
+                علامت‌گذاری به‌عنوان رفع‌شده
+            </button>
+
+        </form>
+
+        {% else %}
+
+        <span class="resolved-tag">
+            ✓ این Incident قبلاً رفع شده است
+        </span>
+
+        {% endif %}
+
+    </div>
+
+</section>
+
+
+<style>
+
+.incident-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 20px;
+}
+
+.incident-grid > .panel:nth-child(n+3) {
+    grid-column: 1 / -1;
+}
+
+.incident-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 0;
+}
+
+.incident-status strong {
+    font-size: 20px;
+}
+
+.status-icon {
+    width: 48px;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: #e5e7eb;
+    color: #374151;
+
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.status-icon.down {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.status-icon.degraded {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.status-icon.resolved {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.details-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    padding: 12px;
+
+    border-radius: 8px;
+
+    background: #f9fafb;
+}
+
+.detail-label {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.detail-item strong {
+    color: #111827;
+    word-break: break-word;
+}
+
+.device-info {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.device-info > div {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.alert-message {
+    line-height: 1.8;
+
+    padding: 15px;
+
+    border-radius: 8px;
+
+    background: #f9fafb;
+
+    color: #374151;
+}
+
+.incident-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.danger-btn {
+    border: 0;
+
+    padding: 9px 15px;
+
+    border-radius: 8px;
+
+    background: #dc2626;
+    color: white;
+
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.danger-btn:hover {
+    background: #b91c1c;
+}
+
+.resolved-tag {
+    display: inline-flex;
+    align-items: center;
+
+    padding: 6px 10px;
+
+    border-radius: 999px;
+
+    background: #dcfce7;
+    color: #15803d;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.duration-value {
+    font-family: Consolas, "Courier New", monospace;
+}
+
+@media (max-width: 800px) {
+
+    .incident-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .incident-grid > .panel:nth-child(n+3) {
+        grid-column: auto;
+    }
+
+    .details-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .device-info {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+</style>
+
 {% endblock %}
