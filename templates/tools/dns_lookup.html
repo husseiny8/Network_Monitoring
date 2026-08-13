@@ -11,7 +11,7 @@
 <section class="panel">
   <form class="form-grid" method="get" action="{% url "dns_lookup" %}">
     <label>دامنه یا آدرس IP
-      <input type="text" name="q" value="{{ query }}" placeholder="google.com یا 8.8.8.8" autofocus>
+      <input type="text" name="q" dir="ltr" class="mono" value="{{ query }}" placeholder="google.com یا 8.8.8.8" autofocus>
     </label>
     <div class="form-actions full-width">
       <button class="btn primary" type="submit">جستجو</button>
@@ -24,7 +24,7 @@
     {% with result=lookup_result.result %}
     <section class="panel">
       <div class="panel-header">
-        <h2>نتایج برای {{ result.hostname }}</h2>
+        <h2>نتایج برای <span class="mono">{{ result.hostname }}</span></h2>
       </div>
 
       {% if not result.exists %}
@@ -42,7 +42,7 @@
                   <tr>
                     <td><span class="badge info">{{ item.record_type }}</span></td>
                     <td class="mono">{{ value }}</td>
-                    <td>{{ item.ttl }}</td>
+                    <td class="mono">{{ item.ttl }}</td>
                   </tr>
                   {% endfor %}
                 {% elif item.error %}
@@ -69,7 +69,7 @@
     {% with result=lookup_result.result %}
     <section class="panel">
       <div class="panel-header">
-        <h2>Reverse lookup برای {{ result.ip_address }}</h2>
+        <h2>Reverse lookup برای <span class="mono">{{ result.ip_address }}</span></h2>
       </div>
       {% if result.error %}
         <p class="muted">خطا: {{ result.error }}</p>

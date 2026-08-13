@@ -10,9 +10,7 @@
 
     <div>
 
-        <p class="eyebrow">
-            Network Incident
-        </p>
+        <p class="eyebrow"><span class="dot"></span>Network Incident</p>
 
         <h1>
             {{ alert.title }}
@@ -163,7 +161,7 @@
                     شناسه
                 </span>
 
-                <strong>
+                <strong class="mono">
                     #{{ alert.id }}
                 </strong>
 
@@ -248,7 +246,7 @@
                     شروع Incident
                 </span>
 
-                <strong>
+                <strong class="mono">
                     {{ alert.created_at|date:"Y/m/d H:i:s" }}
                 </strong>
 
@@ -261,7 +259,7 @@
                     آخرین مشاهده
                 </span>
 
-                <strong>
+                <strong class="mono">
                     {{ alert.last_seen_at|date:"Y/m/d H:i:s" }}
                 </strong>
 
@@ -274,7 +272,7 @@
                     زمان رفع
                 </span>
 
-                <strong>
+                <strong{% if alert.resolved_at %} class="mono"{% endif %}>
 
                     {% if alert.resolved_at %}
                         {{ alert.resolved_at|date:"Y/m/d H:i:s" }}
@@ -345,7 +343,7 @@
                     IP Address
                 </span>
 
-                <strong>
+                <strong class="mono">
                     {{ alert.device.ip_address }}
                 </strong>
 
@@ -360,7 +358,7 @@
                     MAC Address
                 </span>
 
-                <strong>
+                <strong class="mono">
                     {{ alert.device.mac_address }}
                 </strong>
 
@@ -444,7 +442,7 @@
                 type="submit"
                 name="action"
                 value="resolve"
-                class="danger-btn"
+                class="btn danger"
             >
                 علامت‌گذاری به‌عنوان رفع‌شده
             </button>
@@ -462,181 +460,5 @@
     </div>
 
 </section>
-
-
-<style>
-
-.incident-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
-    margin-top: 20px;
-}
-
-.incident-grid > .panel:nth-child(n+3) {
-    grid-column: 1 / -1;
-}
-
-.incident-status {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 12px 0;
-}
-
-.incident-status strong {
-    font-size: 20px;
-}
-
-.status-icon {
-    width: 48px;
-    height: 48px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 50%;
-
-    background: #e5e7eb;
-    color: #374151;
-
-    font-size: 22px;
-    font-weight: 800;
-}
-
-.status-icon.down {
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-.status-icon.degraded {
-    background: #fef3c7;
-    color: #b45309;
-}
-
-.status-icon.resolved {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.details-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-
-    padding: 12px;
-
-    border-radius: 8px;
-
-    background: #f9fafb;
-}
-
-.detail-label {
-    font-size: 12px;
-    color: #6b7280;
-}
-
-.detail-item strong {
-    color: #111827;
-    word-break: break-word;
-}
-
-.device-info {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-}
-
-.device-info > div {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
-
-.alert-message {
-    line-height: 1.8;
-
-    padding: 15px;
-
-    border-radius: 8px;
-
-    background: #f9fafb;
-
-    color: #374151;
-}
-
-.incident-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.danger-btn {
-    border: 0;
-
-    padding: 9px 15px;
-
-    border-radius: 8px;
-
-    background: #dc2626;
-    color: white;
-
-    font-weight: 700;
-
-    cursor: pointer;
-}
-
-.danger-btn:hover {
-    background: #b91c1c;
-}
-
-.resolved-tag {
-    display: inline-flex;
-    align-items: center;
-
-    padding: 6px 10px;
-
-    border-radius: 999px;
-
-    background: #dcfce7;
-    color: #15803d;
-
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.duration-value {
-    font-family: Consolas, "Courier New", monospace;
-}
-
-@media (max-width: 800px) {
-
-    .incident-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .incident-grid > .panel:nth-child(n+3) {
-        grid-column: auto;
-    }
-
-    .details-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .device-info {
-        grid-template-columns: 1fr;
-    }
-
-}
-
-</style>
 
 {% endblock %}

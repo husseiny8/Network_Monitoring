@@ -3,364 +3,14 @@
 
 {% block content %}
 
-<div class="netmon-settings">
-
-<style>
-  @import url("https://cdn.jsdelivr.net/npm/vazirmatn@33.0.1/Vazirmatn-font-face.css");
-
-  .netmon-settings {
-    --bg: #0b0f17;
-    --panel: #131a26;
-    --panel-2: #0f1520;
-    --border: #232c3d;
-    --text: #e7ebf3;
-    --muted: #8992a8;
-    --accent: #48d3c4;
-    --accent-dim: rgba(72, 211, 196, 0.14);
-    --warn: #e8a94a;
-    --warn-dim: rgba(232, 169, 74, 0.14);
-    --danger: #e5636e;
-    --radius: 10px;
-    --font-body: "Vazirmatn", Tahoma, sans-serif;
-    --font-mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
-
-    background: var(--bg);
-    color: var(--text);
-    font-family: var(--font-body);
-    padding: 28px 20px 60px;
-    border-radius: 16px;
-  }
-
-  .netmon-settings * { box-sizing: border-box; }
-
-  .netmon-settings .page-header {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    margin-bottom: 28px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .netmon-settings .eyebrow {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    font-family: var(--font-mono);
-    font-size: 11.5px;
-    letter-spacing: 0.12em;
-    color: var(--accent);
-    margin-bottom: 4px;
-  }
-
-  .netmon-settings .eyebrow .dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 0 0 rgba(72, 211, 196, 0.5);
-    animation: netmon-pulse 2.4s ease-out infinite;
-  }
-
-  @keyframes netmon-pulse {
-    0%   { box-shadow: 0 0 0 0 rgba(72, 211, 196, 0.45); }
-    70%  { box-shadow: 0 0 0 7px rgba(72, 211, 196, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(72, 211, 196, 0); }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .netmon-settings .eyebrow .dot { animation: none; }
-  }
-
-  .netmon-settings .page-header h1 {
-    margin: 0;
-    font-size: 24px;
-    font-weight: 700;
-    color: var(--text);
-  }
-
-  .netmon-settings .page-header .muted {
-    margin: 0;
-    color: var(--muted);
-    font-size: 14px;
-    line-height: 1.7;
-  }
-
-  .netmon-settings .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 18px;
-    overflow: hidden;
-  }
-
-  .netmon-settings .panel-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 18px 20px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .netmon-settings .panel-header h2 {
-    margin: 0 0 4px;
-    font-size: 15.5px;
-    font-weight: 700;
-  }
-
-  .netmon-settings .panel-header .small {
-    font-size: 12.5px;
-    color: var(--muted);
-  }
-
-  .netmon-settings .tag {
-    font-family: var(--font-mono);
-    font-size: 10.5px;
-    letter-spacing: 0.08em;
-    padding: 3px 9px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-
-  .netmon-settings .tag-accent { color: var(--accent); border-color: rgba(72, 211, 196, 0.35); background: var(--accent-dim); }
-  .netmon-settings .tag-warn   { color: var(--warn);   border-color: rgba(232, 169, 74, 0.35); background: var(--warn-dim); }
-
-  .netmon-settings .form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-    padding: 20px;
-  }
-
-  .netmon-settings .form-group,
-  .netmon-settings .form-grid > label {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-  }
-
-  .netmon-settings label[for],
-  .netmon-settings .form-grid > label {
-    font-size: 13px;
-  }
-
-  .netmon-settings input[type="text"],
-  .netmon-settings input[type="number"],
-  .netmon-settings input[type="url"],
-  .netmon-settings select {
-    font-family: var(--font-mono);
-    font-size: 13.5px;
-    font-weight: 400;
-    color: var(--text);
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 10px 12px;
-    width: 100%;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .netmon-settings input::placeholder { color: #52596b; }
-
-  .netmon-settings input:hover,
-  .netmon-settings select:hover { border-color: #3a4358; }
-
-  .netmon-settings input:focus,
-  .netmon-settings select:focus,
-  .netmon-settings input:focus-visible {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-  }
-
-  .netmon-settings .input-with-unit {
-    display: flex;
-    align-items: stretch;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--panel-2);
-    overflow: hidden;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  }
-
-  .netmon-settings .input-with-unit:focus-within {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-dim);
-  }
-
-  .netmon-settings .input-with-unit input {
-    border: none;
-    background: transparent;
-    box-shadow: none !important;
-  }
-
-  .netmon-settings .input-with-unit span {
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    font-family: var(--font-mono);
-    font-size: 12px;
-    color: var(--muted);
-    background: rgba(255, 255, 255, 0.02);
-    border-inline-start: 1px solid var(--border);
-  }
-
-  .netmon-settings .muted { color: var(--muted); }
-  .netmon-settings small.muted {
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 1.6;
-  }
-
-  /* live threshold trace */
-  .netmon-settings .range-trace {
-    height: 5px;
-    border-radius: 999px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    overflow: hidden;
-    margin-top: 2px;
-  }
-
-  .netmon-settings .range-trace-fill {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, var(--accent), var(--warn));
-    transition: width 0.15s ease;
-  }
-
-  /* toggle switch */
-  .netmon-settings .toggle-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    padding: 18px 20px;
-  }
-
-  .netmon-settings .switch {
-    position: relative;
-    flex-shrink: 0;
-    width: 42px;
-    height: 24px;
-    cursor: pointer;
-  }
-
-  .netmon-settings .switch input {
-    position: absolute;
-    opacity: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    cursor: pointer;
-  }
-
-  .netmon-settings .switch-track {
-    position: absolute;
-    inset: 0;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    border-radius: 999px;
-    transition: background 0.15s ease, border-color 0.15s ease;
-  }
-
-  .netmon-settings .switch-thumb {
-    position: absolute;
-    top: 2px;
-    inset-inline-start: 3px;
-    width: 17px;
-    height: 17px;
-    border-radius: 50%;
-    background: var(--muted);
-    transition: transform 0.15s ease, background 0.15s ease;
-  }
-
-  .netmon-settings .switch input:checked ~ .switch-track {
-    background: var(--accent-dim);
-    border-color: var(--accent);
-  }
-
-  .netmon-settings .switch input:checked ~ .switch-track .switch-thumb {
-    background: var(--accent);
-    transform: translateX(-18px);
-  }
-
-  [dir="ltr"] .netmon-settings .switch input:checked ~ .switch-track .switch-thumb {
-    transform: translateX(18px);
-  }
-
-  .netmon-settings .switch input:focus-visible ~ .switch-track {
-    box-shadow: 0 0 0 3px var(--accent-dim);
-  }
-
-  .netmon-settings .toggle-copy { display: flex; flex-direction: column; gap: 4px; }
-  .netmon-settings .toggle-title { font-size: 13.5px; font-weight: 700; cursor: pointer; }
-
-  .netmon-settings .threshold-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 18px;
-    padding: 20px;
-  }
-
-  .netmon-settings .form-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    padding: 18px 20px;
-  }
-
-  .netmon-settings .btn {
-    font-family: var(--font-body);
-    font-size: 13.5px;
-    font-weight: 700;
-    padding: 11px 20px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
-  }
-
-  .netmon-settings .btn:active { transform: scale(0.98); }
-
-  .netmon-settings .btn.primary {
-    background: var(--accent);
-    color: #08221e;
-    margin-inline-end: auto;
-  }
-
-  .netmon-settings .btn.primary:hover { background: #5fe0d2; }
-
-  .netmon-settings .btn.ghost {
-    background: transparent;
-    border-color: var(--border);
-    color: var(--text);
-  }
-
-  .netmon-settings .btn.ghost:hover { border-color: var(--accent); color: var(--accent); }
-
-  @media (max-width: 640px) {
-    .netmon-settings .form-grid,
-    .netmon-settings .threshold-grid { grid-template-columns: 1fr; }
-    .netmon-settings .btn.primary { margin-inline-end: 0; width: 100%; justify-content: center; }
-  }
-</style>
-
 <section class="page-header">
-    <span class="eyebrow"><span class="dot"></span>SYS-CONFIG</span>
-    <h1>تنظیمات عمومی</h1>
-    <p class="muted">
-        پیکربندی پایه سامانه و تنظیمات مربوط به پایش شبکه.
-    </p>
+    <div>
+        <p class="eyebrow"><span class="dot"></span>SYS-CONFIG</p>
+        <h1>تنظیمات عمومی</h1>
+        <p class="muted">
+            پیکربندی پایه سامانه و تنظیمات مربوط به پایش شبکه.
+        </p>
+    </div>
 </section>
 
 
@@ -422,6 +72,7 @@
                     type="number"
                     name="poll_interval_seconds"
                     min="5"
+                    dir="ltr"
                     value="{{ settings.poll_interval_seconds }}"
                 >
 
@@ -437,6 +88,8 @@
                 <input
                     type="text"
                     name="scan_subnet"
+                    dir="ltr"
+                    class="mono"
                     value="{{ settings.scan_subnet }}"
                     placeholder="192.168.1.1/24"
                 >
@@ -483,6 +136,8 @@
                     type="text"
                     id="dns_hostname"
                     name="dns_hostname"
+                    dir="ltr"
+                    class="mono"
                     value="{{ settings.dns_hostname }}"
                     placeholder="google.com"
                 >
@@ -506,6 +161,8 @@
                     type="url"
                     id="web_url"
                     name="web_url"
+                    dir="ltr"
+                    class="mono"
                     value="{{ settings.web_url }}"
                     placeholder="https://www.google.com"
                 >
@@ -529,6 +186,8 @@
                     type="text"
                     id="tcp_host"
                     name="tcp_host"
+                    dir="ltr"
+                    class="mono"
                     value="{{ settings.tcp_host }}"
                     placeholder="www.google.com"
                 >
@@ -552,6 +211,7 @@
                     type="number"
                     id="tcp_port"
                     name="tcp_port"
+                    dir="ltr"
                     value="{{ settings.tcp_port }}"
                     min="1"
                     max="65535"
@@ -589,7 +249,7 @@
 
         <!-- Hysteresis -->
 
-        <div class="toggle-row" style="border-bottom: 1px solid var(--border);">
+        <div class="toggle-row" style="margin-bottom:16px">
 
             <label class="switch">
                 <input
@@ -628,6 +288,7 @@
                     type="number"
                     id="failure_threshold"
                     name="failure_threshold"
+                    dir="ltr"
                     value="{{ settings.failure_threshold }}"
                     min="1"
                     max="100"
@@ -652,6 +313,7 @@
                     type="number"
                     id="recovery_threshold"
                     name="recovery_threshold"
+                    dir="ltr"
                     value="{{ settings.recovery_threshold }}"
                     min="1"
                     max="100"
@@ -686,7 +348,7 @@
         </div>
 
 
-        <div class="threshold-grid">
+        <div class="form-grid">
 
             <!-- High Latency -->
 
@@ -703,6 +365,8 @@
                         step="0.1"
                         id="high_latency_threshold_ms"
                         name="high_latency_threshold_ms"
+                        dir="ltr"
+                        data-trace-max="1000"
                         value="{{ settings.high_latency_threshold_ms }}"
                         min="1"
                     >
@@ -711,7 +375,7 @@
 
                 </div>
 
-                <div class="range-trace"><div class="range-trace-fill" id="high_latency_trace"></div></div>
+                <div class="range-trace"><div class="range-trace-fill"></div></div>
 
                 <small class="muted">
                     بالاتر رفتن Latency از این مقدار باعث ایجاد
@@ -736,6 +400,8 @@
                         step="0.1"
                         id="packet_loss_threshold_percent"
                         name="packet_loss_threshold_percent"
+                        dir="ltr"
+                        data-trace-max="100"
                         value="{{ settings.packet_loss_threshold_percent }}"
                         min="0"
                         max="100"
@@ -745,7 +411,7 @@
 
                 </div>
 
-                <div class="range-trace"><div class="range-trace-fill" id="packet_loss_trace"></div></div>
+                <div class="range-trace"><div class="range-trace-fill"></div></div>
 
                 <small class="muted">
                     بیشتر شدن Packet Loss از این مقدار باعث ایجاد
@@ -768,7 +434,7 @@
         <div class="form-actions">
 
             <a
-                class="btn ghost"
+                class="ghost-btn"
                 href="{% url 'settings_notifications' %}"
             >
                 تنظیمات اعلانات
@@ -776,7 +442,7 @@
 
 
             <a
-                class="btn ghost"
+                class="ghost-btn"
                 href="{% url 'settings_ping' %}"
             >
                 تنظیمات Ping Target
@@ -795,29 +461,5 @@
     </section>
 
 </form>
-
-</div>
-
-<script>
-(function () {
-    function bindTrace(inputId, traceId, max) {
-        var input = document.getElementById(inputId);
-        var fill = document.getElementById(traceId);
-        if (!input || !fill) return;
-        function update() {
-            var val = parseFloat(input.value);
-            if (isNaN(val)) val = 0;
-            var pct = Math.max(0, Math.min(100, (val / max) * 100));
-            fill.style.width = pct + '%';
-        }
-        input.addEventListener('input', update);
-        update();
-    }
-    document.addEventListener('DOMContentLoaded', function () {
-        bindTrace('high_latency_threshold_ms', 'high_latency_trace', 1000);
-        bindTrace('packet_loss_threshold_percent', 'packet_loss_trace', 100);
-    });
-})();
-</script>
 
 {% endblock %}

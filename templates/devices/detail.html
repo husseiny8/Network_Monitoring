@@ -13,8 +13,8 @@
     <h2>اطلاعات پایه</h2>
     <div class="detail-list">
       <div><span>نام:</span><strong>{{ device.display_name }}</strong></div>
-      <div><span>IP:</span><strong>{{ device.ip_address }}</strong></div>
-      <div><span>MAC:</span><strong>{{ device.mac_address|default:"—" }}</strong></div>
+      <div><span>IP:</span><strong class="mono">{{ device.ip_address }}</strong></div>
+      <div><span>MAC:</span><strong class="mono">{{ device.mac_address|default:"—" }}</strong></div>
       <div><span>نوع:</span><strong>{{ device.device_type }}</strong></div>
       <div><span>وضعیت:</span><strong>
         {% if device.is_online %}
@@ -56,7 +56,7 @@
       <tbody>
         {% for ping in ping_history %}
         <tr>
-          <td>{{ ping.target }}</td>
+          <td class="mono">{{ ping.target }}</td>
           <td>
             {% if ping.success %}
               <span class="badge success">موفق</span>
@@ -64,7 +64,7 @@
               <span class="badge danger">ناموفق</span>
             {% endif %}
           </td>
-          <td>{% if ping.latency_ms %}{{ ping.latency_ms }} ms{% else %}—{% endif %}</td>
+          <td class="mono">{% if ping.latency_ms %}{{ ping.latency_ms }} ms{% else %}—{% endif %}</td>
           <td>{{ ping.message|default:"—" }}</td>
           <td>{{ ping.created_at|timesince }} پیش</td>
         </tr>

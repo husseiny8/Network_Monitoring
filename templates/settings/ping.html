@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}تنظیمات عمومی | پایش شبکه{% endblock %}
+{% block title %}تنظیمات Ping Target | پایش شبکه{% endblock %}
 {% block content %}
 
 <section class="page-header">
@@ -14,7 +14,7 @@
     {% csrf_token %}
 
     <label>Ping Target
-      <input type="text" name="ping_target" value="{{ ping.ping_target }}" placeholder="{{ ping.ping_target }}">
+      <input type="text" name="ping_target" dir="ltr" class="mono" value="{{ ping.ping_target }}" placeholder="{{ ping.ping_target }}">
     </label>
 
     <div class="form-actions full-width">

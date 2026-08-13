@@ -29,13 +29,31 @@ SECRET_KEY = os.environ.get(
     "django-insecure-d%+0)8i0ub*ucq*#v($bt7qy@)v0kvnxznt*_m88-rnbumyo=7",
 )
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DJANGO_DEBUG", "True") == "True"
-
-ALLOWED_HOSTS = [
-    h.strip() for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()
-]
-
+#SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+DEBUG = True
+ALLOWED_HOSTS = ["127.0.0.1",
+                 "localhost",]
+#
+# if not SECRET_KEY:
+#     raise RuntimeError(
+#         "DJANGO_SECRET_KEY is not set."
+#     )
+#
+#
+# DEBUG = os.environ.get(
+#     "DJANGO_DEBUG",
+#     "False",
+# ).lower() in ("1", "true", "yes", "on")
+#
+#
+# ALLOWED_HOSTS = [
+#     h.strip()
+#     for h in os.environ.get(
+#         "DJANGO_ALLOWED_HOSTS",
+#         "127.0.0.1,localhost",
+#     ).split(",")
+#     if h.strip()
+# ]
 
 # Application definition
 

@@ -3,14 +3,14 @@
   <button class="icon-btn mobile-only" id="sidebarToggle" aria-label="Toggle Sidebar">☰</button>
   <div class="topbar-actions">
     {% if request.user.is_authenticated %}
-        <a href="{% url "logout" %}">LogOut</a>
+        <a href="{% url "logout" %}">خروج</a>
     {% endif %}
     <div class="profile-chip">
       {% if request.user.is_authenticated %}
         <img src="{% static 'images/avatars/user.svg' %}" alt="User Avatar">
         <span>{{ request.user.username }}</span>
       {% else %}
-          <a href="{% url "login" %}">Login</a>
+          <a href="{% url "login" %}">ورود</a>
       {% endif %}
     </div>
   </div>

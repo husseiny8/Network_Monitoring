@@ -6,9 +6,31 @@
   <form method="post" action="{% url "settings_notifications" %}">
     {% csrf_token %}
     <div class="toggle-list">
-      <label class="toggle-item"><span>ارسال ایمیل</span><input type="checkbox" name="notify_email" {% if settings.notify_email %}checked{% endif %}></label>
-      <label class="toggle-item"><span>ارسال پیام داخل پنل</span><input type="checkbox" name="notify_in_app" {% if settings.notify_in_app %}checked{% endif %}></label>
-      <label class="toggle-item"><span>اعلان برای وضعیت بحرانی</span><input type="checkbox" name="notify_on_critical" {% if settings.notify_on_critical %}checked{% endif %}></label>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" id="notify_email" name="notify_email" {% if settings.notify_email %}checked{% endif %}>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+        <label for="notify_email" class="toggle-title">ارسال ایمیل</label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" id="notify_in_app" name="notify_in_app" {% if settings.notify_in_app %}checked{% endif %}>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+        <label for="notify_in_app" class="toggle-title">ارسال پیام داخل پنل</label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch">
+          <input type="checkbox" id="notify_on_critical" name="notify_on_critical" {% if settings.notify_on_critical %}checked{% endif %}>
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+        </label>
+        <label for="notify_on_critical" class="toggle-title">اعلان برای وضعیت بحرانی</label>
+      </div>
+
     </div>
     <div class="form-actions" style="margin-top:16px"><button class="btn primary" type="submit">ذخیره تنظیمات</button></div>
   </form>

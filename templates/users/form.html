@@ -5,8 +5,8 @@
 <section class="panel">
   <form class="form-grid" method="post" action="{% if target %}{% url "user_edit" target.id %}{% else %}{% url "user_create" %}{% endif %}">
     {% csrf_token %}
-    <label>نام<input type="text" name="username" value="{{ submitted.username|default:"" }}" required></label>
-    <label>ایمیل<input type="email" name="email" value="{{ submitted.email|default:"" }}"></label>
+    <label>نام<input type="text" name="username" dir="ltr" class="mono" value="{{ submitted.username|default:"" }}" required></label>
+    <label>ایمیل<input type="email" name="email" dir="ltr" class="mono" value="{{ submitted.email|default:"" }}"></label>
     <label>نقش
       <select name="role">
         <option value="Administrator" {% if submitted.role == "Administrator" %}selected{% endif %}>Administrator</option>

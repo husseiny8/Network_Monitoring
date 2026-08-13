@@ -6,7 +6,7 @@
 
 <section class="hero-card">
     <div>
-        <p class="eyebrow">Network Operations Center</p>
+        <p class="eyebrow"><span class="dot"></span>Network Operations Center</p>
 
         <h1>هشدارهای شبکه</h1>
 
@@ -21,12 +21,10 @@
 
     <article class="stat-card">
         <span class="stat-label">کل هشدارها</span>
-
         <strong class="stat-value">
             {{ total_alert_count }}
         </strong>
     </article>
-
 
     <article class="stat-card">
         <span class="stat-label">هشدارهای فعال</span>
@@ -36,25 +34,15 @@
         </strong>
     </article>
 
-
     <article class="stat-card">
         <span class="stat-label">نمایش فعلی</span>
 
         <strong class="stat-value">
-
-            {% if severity == "critical" %}
-                بحرانی
-
-            {% elif severity == "warning" %}
-                هشدار
-
-            {% elif severity == "info" %}
-                اطلاع
-
+            {% if severity %}
+                {{ severity|title }}
             {% else %}
                 همه
             {% endif %}
-
         </strong>
     </article>
 
@@ -75,34 +63,31 @@
 
         <div class="alert-filters">
 
-    <a
-        href="{% url 'alerts' %}"
-        class="ghost-btn {% if not severity %}active{% endif %}">
-        همه
-    </a>
+            <a
+                href="{% url 'alerts' %}"
+                class="ghost-btn {% if not severity %}active{% endif %}">
+                همه
+            </a>
 
+            <a
+                href="?severity=critical"
+                class="ghost-btn {% if severity == 'critical' %}active{% endif %}">
+                بحرانی
+            </a>
 
-    <a
-        href="{% url 'alerts' %}?severity=critical"
-        class="ghost-btn {% if severity == 'critical' %}active{% endif %}">
-        بحرانی
-    </a>
+            <a
+                href="?severity=warning"
+                class="ghost-btn {% if severity == 'warning' %}active{% endif %}">
+                هشدار
+            </a>
 
+            <a
+                href="?severity=info"
+                class="ghost-btn {% if severity == 'info' %}active{% endif %}">
+                اطلاع
+            </a>
 
-    <a
-        href="{% url 'alerts' %}?severity=warning"
-        class="ghost-btn {% if severity == 'warning' %}active{% endif %}">
-        هشدار
-    </a>
-
-
-    <a
-        href="{% url 'alerts' %}?severity=info"
-        class="ghost-btn {% if severity == 'info' %}active{% endif %}">
-        اطلاع
-    </a>
-
-</div>
+        </div>
 
     </div>
 
@@ -153,7 +138,7 @@
                             <div class="muted small">
                                 {{ alert.device.display_name }}
                                 ·
-                                {{ alert.device.ip_address }}
+                                <span class="mono">{{ alert.device.ip_address }}</span>
                             </div>
 
                         {% endif %}
@@ -301,84 +286,5 @@
     </div>
 
 </section>
-
-
-<style>
-
-.alert-filters {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.alert-filters .ghost-btn.active {
-    font-weight: 700;
-    border-color: currentColor;
-}
-
-.alert-title {
-    font-weight: 700;
-    text-decoration: none;
-}
-
-.alert-title:hover {
-    text-decoration: underline;
-}
-
-.occurrence-count {
-    display: inline-flex;
-    min-width: 30px;
-    height: 30px;
-    align-items: center;
-    justify-content: center;
-
-    border-radius: 999px;
-
-    background: #f3f4f6;
-    color: #374151;
-
-    font-weight: 700;
-}
-
-.duration-value {
-    font-family: Consolas, "Courier New", monospace;
-    font-size: 12px;
-}
-
-.warning-tag,
-.active-tag,
-.resolved-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-
-    padding: 4px 9px;
-
-    border-radius: 999px;
-
-    font-size: 12px;
-    font-weight: 700;
-}
-
-.warning-tag {
-    background: #fef3c7;
-    color: #b45309;
-}
-
-.active-tag {
-    background: #fee2e2;
-    color: #b91c1c;
-}
-
-.resolved-tag {
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.alert-row.resolved {
-    opacity: 0.75;
-}
-
-</style>
 
 {% endblock %}

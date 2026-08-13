@@ -15,7 +15,7 @@
         <tr>
           <td>{{ u.username }}</td>
           <td>{{ u.role }}</td>
-          <td>{{ u.email|default:"—" }}</td>
+          <td class="mono">{{ u.email|default:"—" }}</td>
           <td>
             {% if u.is_active %}
               <span class="badge success">Active</span>

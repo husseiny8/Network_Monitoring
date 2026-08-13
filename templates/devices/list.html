@@ -29,8 +29,11 @@
       <tbody>
         {% for device in devices %}
         <tr>
-          <td><a href="{% url "device_detail" device.id %}">{{ device.display_name }}</a></td>
-          <td>{{ device.mac_address|default:"—" }}</td>
+          <td>
+            <a href="{% url "device_detail" device.id %}">{{ device.display_name }}</a>
+            <div class="muted small mono">{{ device.ip_address }}</div>
+          </td>
+          <td class="mono">{{ device.mac_address|default:"—" }}</td>
           <td>{{ device.device_type }}</td>
           <td>
             {% if device.is_online %}
