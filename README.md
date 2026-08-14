@@ -8,16 +8,12 @@
   <a href="#-features"><img src="https://img.shields.io/badge/Features-Network%20Monitoring-0ea5e9?style=for-the-badge" alt="Features"></a>
   <a href="#-technology-stack"><img src="https://img.shields.io/badge/Backend-Django-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django"></a>
   <a href="#-technology-stack"><img src="https://img.shields.io/badge/Language-Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="#-docker"><img src="https://img.shields.io/badge/Deployment-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
-  <a href="#-database"><img src="https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"></a>
 </p>
 
 <p align="center">
   <a href="#-installation">Installation</a> •
-  <a href="#-configuration">Configuration</a> •
   <a href="#-architecture">Architecture</a> •
   <a href="#-alerting-system">Alerting</a> •
-  <a href="#-future-improvements">Roadmap</a>
 </p>
 
 ---
@@ -104,6 +100,7 @@ The scoring model considers factors such as:
 - Availability
 - Packet loss
 - Latency
+- Services
 
 A normalized score in the **0–100** range is used for presentation.
 
@@ -182,6 +179,7 @@ The dashboard provides a centralized operational view of the network, including 
 - Recent alerts
 - Event logs
 - Latency trend
+- Bandwidth trend
 - Monitoring metrics
 
 Where appropriate, dashboard data can be refreshed asynchronously using JavaScript/AJAX without requiring a full page reload.
@@ -189,25 +187,6 @@ Where appropriate, dashboard data can be refreshed asynchronously using JavaScri
 ### 🔐 Authentication
 
 Protected monitoring pages can be accessed through Django authentication, helping prevent unauthenticated access to operational information.
-
-### ⚙️ Configurable Monitoring Targets
-
-Monitoring targets are designed to be configurable rather than being permanently tied to a single external service.
-
-Typical targets include:
-
-```text
-DNS_HOSTNAME=example.com
-WEB_URL=https://example.com
-TCP_HOST=example.com
-TCP_PORT=443
-```
-
-This makes the monitoring engine reusable across different environments and infrastructure setups.
-
-### 🐳 Docker Support
-
-The project can be containerized and run with Docker / Docker Compose for a more consistent deployment environment.
 
 ---
 
@@ -241,6 +220,7 @@ flowchart TB
 
     DEV --> ARP[ARP Scanner]
     DEV --> PING[Ping / Latency]
+    DEV --> SNMP[SNMP / Device]
 
     SVC --> DNS[DNS Check]
     SVC --> WEB[HTTP/HTTPS Check]
@@ -449,14 +429,13 @@ flowchart LR
     A[Availability Score] --> D[Health Score]
     B[Packet Loss Score] --> D
     C[Latency Score] --> D
-    D --> E[0 - 100]
+    E[TCP Score] --> D
+    F[DNS Score] --> D
+    G[Web Server Score] --> D
+    V[GateWay Score] --> D
+    D --> H[0 - 100]
 ```
 
-The project contains scoring functions for:
-
-- Latency
-- Packet loss
-- Availability
 
 The final value is bounded to the `0–100` range.
 
@@ -607,29 +586,6 @@ Run Service Checks
 JSON Response
     ↓
 Update UI
-```
-
----
-
-## 🔐 Authentication & Security
-
-The project uses Django's authentication mechanisms for protected application areas.
-
-Recommended production practices include:
-
-- `DEBUG=False`
-- Environment-based secrets
-- Restricted `ALLOWED_HOSTS`
-- Secure database credentials
-- No secrets committed to Git
-- Proper CSRF protection
-- HTTPS in production
-- Restricted access to monitoring endpoints
-
-Example environment-based secret configuration:
-
-```python
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 ```
 
 ---
@@ -795,182 +751,6 @@ For development, the application can then be accessed from a browser and the mon
 
 ---
 
-## 🐳 Docker
-
-### Build the image
-
-```bash
-docker build -t network-monitoring .
-```
-
-### Run the container
-
-```bash
-docker run --rm -p 8000:8000 network-monitoring
-```
-
-### Docker Compose
-
-If a `docker-compose.yml` is provided:
-
-```bash
-docker compose up --build
-```
-
-To stop the services:
-
-```bash
-docker compose down
-```
-
----
-
-## 🧪 Testing Scenarios
-
-The monitoring platform should be tested against realistic operational conditions.
-
-### Internet outage
-
-Verify:
-
-- connectivity state
-- alert creation
-- severity
-- logs
-- health score
-- recovery after restoration
-
-### High latency
-
-Verify:
-
-- latency measurement
-- threshold classification
-- health score degradation
-- alert behavior
-
-### Packet loss
-
-Verify:
-
-- packet-loss calculation
-- health-score impact
-- alert state transitions
-
-### Device offline
-
-Remove a device from the network and verify:
-
-- device state change
-- `last_seen` behavior
-- alert generation
-- recovery after the device returns
-
-### Service failure
-
-Temporarily make a monitored service unavailable and verify:
-
-- service state
-- latency / failure classification
-- logs
-- alert lifecycle
-- recovery
-
----
-
-## ⚡ Performance & Reliability Considerations
-
-The system is designed with several practical considerations:
-
-- Separate monitoring logic from presentation logic
-- Avoid unnecessary repeated network requests
-- Keep active alert state in persistent storage where required
-- Prevent alert duplication for persistent failures
-- Limit the amount of recent trend data rendered on the dashboard
-- Use asynchronous requests for selected live dashboard components
-- Use database transactions around sensitive alert-state transitions
-- Keep monitoring thresholds configurable
-
-For production-scale monitoring, long-running checks should ideally be moved to dedicated background workers or task queues instead of being performed directly inside ordinary request/response cycles.
-
----
-
-## 🛣️ Future Improvements
-
-The current architecture can be extended with:
-
-### 📬 Notifications
-
-- Email notifications
-- Telegram notifications
-- Discord notifications
-- Browser / Web Push notifications
-
-### 📚 Historical Analytics
-
-- Long-term latency history
-- Packet-loss history
-- Uptime and downtime analytics
-- Availability reports
-- Incident history
-
-### 📊 Advanced Visualization
-
-- Latency charts
-- Packet-loss graphs
-- Availability charts
-- Device uptime charts
-- Network traffic visualization
-
-### 👥 User & Role Management
-
-Possible roles:
-
-```text
-Admin
-Operator
-Viewer
-```
-
-### 🧠 User-Defined Alert Rules
-
-Example:
-
-```text
-IF latency > 200 ms
-THEN WARNING
-```
-
-```text
-IF packet_loss > 20%
-THEN CRITICAL
-```
-
-### 🛠 Maintenance Mode
-
-Allow an operator to temporarily suppress expected alerts while a device or service is under maintenance.
-
-### 📈 Alert Escalation
-
-Example:
-
-```text
-WARNING
-   ↓
-Problem persists
-   ↓
-CRITICAL
-```
-
-### 🌍 Multi-Network Monitoring
-
-Support monitoring for multiple subnets, network segments, or sites.
-
-### 🛰 Distributed Monitoring
-
-Deploy independent monitoring agents across different networks and aggregate their results centrally.
-
----
 
 ## 🎓 Academic / Engineering Scope
 
@@ -993,33 +773,6 @@ This project brings together concepts from several areas of computer engineering
 - Containerization
 
 It demonstrates how **network-level measurements** can be collected, persisted, processed, and presented through a modern web application.
-
----
-
-## 📌 Project Status
-
-| Component | Status |
-|---|---|
-| Django Backend | ✅ Implemented |
-| Network Discovery | ✅ Implemented |
-| Device Monitoring | ✅ Implemented |
-| Ping / Latency Monitoring | ✅ Implemented |
-| Packet Loss Monitoring | ✅ Implemented |
-| Gateway Monitoring | ✅ Implemented |
-| DNS Monitoring | ✅ Implemented |
-| Web Monitoring | ✅ Implemented |
-| TCP Monitoring | ✅ Implemented |
-| Database Health Check | ✅ Implemented |
-| Health Score | ✅ Implemented |
-| Alert Management | ✅ Implemented |
-| Alert Severity | ✅ Implemented |
-| Alert State Handling | ✅ Implemented |
-| Recovery Detection | ✅ Implemented |
-| Logging | ✅ Implemented |
-| Dashboard | ✅ Implemented |
-| Authentication | ✅ Implemented |
-| Configurable Targets | ✅ Implemented |
-| Docker Support | ✅ Supported |
 
 ---
 
@@ -1068,39 +821,5 @@ Alert Management
 ```
 
 ---
-
-## ⭐ Final Summary
-
-**Network Monitoring System** provides a centralized platform for discovering devices, monitoring connectivity, evaluating service health, measuring network performance, calculating an overall health score, managing alerts, recording events, and presenting the current state of the infrastructure through a web dashboard.
-
-The core monitoring path can be summarized as:
-
-```text
-             🌐 NETWORK
-                  │
-                  ▼
-          🔎 DISCOVERY
-                  │
-                  ▼
-           💻 DEVICES
-                  │
-                  ▼
-        📡 CONNECTIVITY
-                  │
-                  ▼
-            📊 METRICS
-                  │
-                  ▼
-          ❤️ HEALTH SCORE
-                  │
-                  ▼
-          🚨 ALERT ENGINE
-                  │
-                  ▼
-            📝 LOGGING
-                  │
-                  ▼
-            📈 DASHBOARD
-```
 
 > **A complete web-based network monitoring platform for discovering, monitoring, analyzing, and managing network health and infrastructure events.**
