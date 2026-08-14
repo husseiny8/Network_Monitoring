@@ -1,239 +1,320 @@
-# 🌐 سامانه مانیتورینگ شبکه (Network Monitoring System)
-
-> یک سامانه تحت وب مبتنی بر Django برای پایش شبکه، سرویس‌های زیرساختی، وضعیت دستگاه‌ها، شاخص‌های عملکرد و مدیریت هشدارها.
+# 🌐 Network Monitoring System
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
-  <img src="https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django">
-  <img src="https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
-  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/Network-Monitoring-0EA5E9?style=for-the-badge" alt="Network Monitoring">
+  <strong>A web-based network monitoring and infrastructure health platform built with Django</strong>
 </p>
 
 <p align="center">
-  <strong>Network Discovery • Device Monitoring • Service Health • Metrics • Health Score • Alert Management</strong>
+  <a href="#-features"><img src="https://img.shields.io/badge/Features-Network%20Monitoring-0ea5e9?style=for-the-badge" alt="Features"></a>
+  <a href="#-technology-stack"><img src="https://img.shields.io/badge/Backend-Django-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django"></a>
+  <a href="#-technology-stack"><img src="https://img.shields.io/badge/Language-Python-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
+  <a href="#-docker"><img src="https://img.shields.io/badge/Deployment-Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="#-database"><img src="https://img.shields.io/badge/Database-MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL"></a>
+</p>
+
+<p align="center">
+  <a href="#-installation">Installation</a> •
+  <a href="#-configuration">Configuration</a> •
+  <a href="#-architecture">Architecture</a> •
+  <a href="#-alerting-system">Alerting</a> •
+  <a href="#-future-improvements">Roadmap</a>
 </p>
 
 ---
 
-## 📌 فهرست مطالب
+## 📖 Overview
 
-- [معرفی پروژه](#-معرفی-پروژه)
-- [هدف پروژه](#-هدف-پروژه)
-- [قابلیت‌های اصلی](#-قابلیتهای-اصلی)
-- [معماری سیستم](#-معماری-سیستم)
-- [Network Discovery](#-network-discovery)
-- [مانیتورینگ دستگاه‌ها](#-مانیتورینگ-دستگاهها)
-- [مانیتورینگ اتصال شبکه](#-مانیتورینگ-اتصال-شبکه)
-- [مانیتورینگ سرویس‌ها](#-مانیتورینگ-سرویسها)
-- [Latency و Packet Loss](#-latency-و-packet-loss)
-- [Health Score](#-health-score)
-- [سیستم Alerting](#-سیستم-alerting)
-- [مدیریت وضعیت Alert](#-مدیریت-وضعیت-alert)
-- [Logging](#-logging)
-- [Dashboard](#-dashboard)
-- [احراز هویت](#-احراز-هویت)
-- [ساختار پروژه](#-ساختار-پروژه)
-- [Technology Stack](#-technology-stack)
-- [نصب و راه‌اندازی](#-نصب-و-راهاندازی)
-- [Configuration](#-configuration)
-- [Database](#-database)
-- [Docker](#-docker)
-- [امنیت](#-امنیت)
-- [عملکرد](#-عملکرد)
-- [تست](#-تست)
-- [بهبودهای آینده](#-بهبودهای-آینده)
-- [هدف دانشگاهی](#-هدف-دانشگاهی)
-- [وضعیت پروژه](#-وضعیت-پروژه)
-- [مشارکت](#-مشارکت)
-- [License](#-license)
+**Network Monitoring System** is a Django-based monitoring platform designed to provide a centralized view of network health, device availability, connectivity, service status, performance metrics, logs, and alerts.
+
+The system combines **LAN discovery**, **device monitoring**, **connectivity checks**, **service health checks**, **latency and packet-loss analysis**, **health scoring**, and **state-aware alerting** into a single web dashboard.
+
+The project is designed with a practical monitoring workflow in mind:
+
+```text
+Discover → Monitor → Measure → Classify → Alert → Recover → Analyze
+```
+
+It can be used as a foundation for monitoring a local network, internet connectivity, infrastructure services, or as an academic project demonstrating the integration of **computer networks, backend development, databases, and web interfaces**.
 
 ---
 
-# 🎯 معرفی پروژه
+## ✨ Features
 
-**Network Monitoring System** یک سامانه تحت وب برای مشاهده و تحلیل وضعیت شبکه است که با استفاده از **Python** و **Django** توسعه داده شده است.
+### 🔎 Network Discovery
 
-این سیستم اطلاعات مختلف شبکه را جمع‌آوری و در یک Dashboard متمرکز نمایش می‌دهد و علاوه بر وضعیت دستگاه‌ها، سلامت سرویس‌های زیرساختی و شاخص‌های عملکرد شبکه را نیز بررسی می‌کند.
+- LAN device discovery using ARP scanning
+- Detection of IP and MAC addresses
+- Synchronization of discovered devices with the database
+- Detection of newly discovered devices
+- Detection of devices that become unavailable
+- Tracking of first-seen and last-seen timestamps
 
-موارد اصلی قابل پایش عبارت‌اند از:
+### 💻 Device Monitoring
 
-- وضعیت اتصال اینترنت
-- Gateway شبکه
-- دستگاه‌های موجود در LAN
-- وضعیت Online / Offline دستگاه‌ها
-- Latency
-- Packet Loss
-- DNS Resolution
-- HTTP/HTTPS Connectivity
-- TCP Connectivity
-- Database Connectivity
+- Device online/offline state
+- IP address and MAC address tracking
+- Device name and device type
+- Latest ping result
+- Latency monitoring
+- Packet-loss statistics
+- Last-seen information
+
+### 🌐 Connectivity Monitoring
+
+The system does not rely on a single check to determine whether the network is healthy. Multiple layers can be evaluated independently:
+
+- Local gateway reachability
+- Internet connectivity
+- DNS resolution
+- HTTP/HTTPS availability
+- TCP host/port reachability
+- Database connectivity
+
+This allows the application to distinguish between different failure modes instead of reporting every problem as a generic "Internet Down" event.
+
+### 🧪 Service Health Checks
+
+The service monitoring layer supports checks for:
+
+| Service | Purpose |
+|---|---|
+| **DNS** | Resolves a configurable hostname |
+| **Web** | Verifies HTTP/HTTPS reachability of a configurable URL |
+| **TCP** | Checks connectivity to a configurable host and port |
+| **Database** | Verifies Django database connectivity |
+| **Gateway** | Checks reachability of the local network gateway |
+
+Each check can be classified based on both **success/failure** and **response latency**.
+
+### 📊 Performance Monitoring
+
+- Ping latency measurement
+- Packet-loss calculation
+- Response-time tracking
+- Recent latency trend visualization
+- Availability tracking
+- Degraded-service detection based on latency thresholds
+
+### ❤️ Network Health Score
+
+The dashboard can combine multiple indicators into a single health score to make the current network condition easier to understand.
+
+The scoring model considers factors such as:
+
 - Availability
-- Health Score
-- رخدادها و Logs
-- هشدارها و Recovery Events
-
-هدف سیستم این است که کاربر به جای بررسی دستی و پراکنده وضعیت شبکه، یک نمای متمرکز، قابل فهم و قابل تحلیل از زیرساخت شبکه در اختیار داشته باشد.
-
----
-
-# 🎯 هدف پروژه
-
-این پروژه با چند هدف اصلی طراحی شده است:
-
-### 1. Network Discovery
-
-شناسایی دستگاه‌های موجود در شبکه محلی و ثبت اطلاعات مربوط به آن‌ها.
-
-### 2. Continuous Monitoring
-
-پایش مستمر وضعیت شبکه، دستگاه‌ها و سرویس‌ها.
-
-### 3. Fault Detection
-
-شناسایی سریع اختلال، قطعی، کاهش کیفیت و تغییر وضعیت سرویس‌ها.
-
-### 4. Performance Monitoring
-
-اندازه‌گیری شاخص‌هایی مانند:
-
+- Packet loss
 - Latency
-- Packet Loss
-- Availability
-- Response Time
 
-### 5. Alert Management
+A normalized score in the **0–100** range is used for presentation.
 
-ایجاد و مدیریت هشدارها، تعیین Severity مناسب، جلوگیری از Alert Spam و تشخیص Recovery.
+Example latency classification used by the monitoring logic:
 
-### 6. Centralized Dashboard
+| Latency | Interpretation |
+|---:|---|
+| `≤ 50 ms` | Excellent |
+| `≤ 100 ms` | Good |
+| `≤ 200 ms` | Moderate |
+| `≤ 500 ms` | Poor |
+| `> 500 ms` | Critical |
 
-نمایش اطلاعات مهم سیستم در یک محیط یکپارچه و قابل استفاده.
+### 🚨 Alerting System
+
+The alerting layer is designed around **state management**, rather than creating an independent alert for every repeated observation.
+
+Supported severity levels:
+
+```text
+INFO
+WARNING
+CRITICAL
+```
+
+Severity priority:
+
+```text
+INFO      → 1
+WARNING   → 2
+CRITICAL  → 3
+```
+
+The alert workflow supports concepts such as:
+
+- Problem detection
+- Alert creation
+- Severity classification
+- Alert-state tracking
+- Repeated-event suppression
+- Persistent problem tracking
+- Recovery detection
+- Recovery logging
+
+This helps prevent alert spam when the same problem persists across multiple monitoring cycles.
+
+### 📝 Logging
+
+The system records important monitoring events such as:
+
+- Successful ping operations
+- High latency conditions
+- Connectivity failures
+- Connectivity recovery
+- Device availability changes
+- Service-check results
+- Alert-related events
+
+Example event flow:
+
+```text
+INFO     → Ping successful
+WARNING  → High latency detected
+CRITICAL → Connectivity lost
+INFO     → Connectivity restored
+```
+
+### 📈 Dashboard
+
+The dashboard provides a centralized operational view of the network, including areas such as:
+
+- Overall health score
+- Connectivity status
+- Service status
+- Device table
+- Recent alerts
+- Event logs
+- Latency trend
+- Monitoring metrics
+
+Where appropriate, dashboard data can be refreshed asynchronously using JavaScript/AJAX without requiring a full page reload.
+
+### 🔐 Authentication
+
+Protected monitoring pages can be accessed through Django authentication, helping prevent unauthenticated access to operational information.
+
+### ⚙️ Configurable Monitoring Targets
+
+Monitoring targets are designed to be configurable rather than being permanently tied to a single external service.
+
+Typical targets include:
+
+```text
+DNS_HOSTNAME=example.com
+WEB_URL=https://example.com
+TCP_HOST=example.com
+TCP_PORT=443
+```
+
+This makes the monitoring engine reusable across different environments and infrastructure setups.
+
+### 🐳 Docker Support
+
+The project can be containerized and run with Docker / Docker Compose for a more consistent deployment environment.
 
 ---
 
-# 🚀 قابلیت‌های اصلی
+## 🧭 Project Goals
 
-| قابلیت | وضعیت |
-|---|---:|
-| Network Discovery | ✅ |
-| ARP Scanning | ✅ |
-| Device Management | ✅ |
-| Online / Offline Detection | ✅ |
-| Ping Monitoring | ✅ |
-| Latency Measurement | ✅ |
-| Packet Loss Monitoring | ✅ |
-| Gateway Monitoring | ✅ |
-| DNS Monitoring | ✅ |
-| Web Monitoring | ✅ |
-| TCP Port Monitoring | ✅ |
-| Database Health Check | ✅ |
-| Availability Monitoring | ✅ |
-| Health Score | ✅ |
-| Alerting System | ✅ |
-| Alert Severity | ✅ |
-| Alert State Management | ✅ |
-| Recovery Detection | ✅ |
-| Event Logging | ✅ |
-| Dashboard | ✅ |
-| Authentication | ✅ |
-| Configurable Monitoring Targets | ✅ |
-| Docker Support | ✅ |
+The main goals of the project are:
+
+1. **Network Discovery** — identify devices available on the local network.
+2. **Continuous Monitoring** — continuously evaluate connectivity and infrastructure health.
+3. **Fault Detection** — detect failures, degraded services, and availability changes.
+4. **Performance Analysis** — measure latency, packet loss, response time, and availability.
+5. **Alert Management** — create meaningful alerts while avoiding unnecessary duplication.
+6. **Centralized Visualization** — present network status through a single web dashboard.
+7. **Operational Insight** — provide enough information to understand not only that a service failed, but also where the failure appears to be occurring.
 
 ---
 
-# 🏗 معماری سیستم
+## 🏗 Architecture
 
-نمای کلی معماری:
+### High-Level Architecture
 
 ```mermaid
-flowchart TD
-    A[Browser / Dashboard] --> B[Django Web Layer]
-    B --> C[Device Monitoring]
-    B --> D[Service Monitoring]
-    B --> E[Alert Management]
-    C --> F[ARP Scan / Ping]
-    D --> G[DNS]
-    D --> H[HTTP/HTTPS]
-    D --> I[TCP]
-    D --> J[Database]
-    C --> K[(Database)]
-    D --> K
-    E --> K
-    F --> L[Metrics]
-    G --> L
-    H --> L
-    I --> L
-    J --> L
-    L --> M[Health Score]
-    M --> E
-    E --> A
+flowchart TB
+    U[User / Browser] --> D[Django Dashboard]
+    D --> API[Monitoring API / Views]
+
+    API --> DEV[Device Monitoring]
+    API --> SVC[Service Monitoring]
+    API --> ALT[Alert Engine]
+    API --> LOG[Logging]
+
+    DEV --> ARP[ARP Scanner]
+    DEV --> PING[Ping / Latency]
+
+    SVC --> DNS[DNS Check]
+    SVC --> WEB[HTTP/HTTPS Check]
+    SVC --> TCP[TCP Check]
+    SVC --> DB[Database Check]
+    SVC --> GW[Gateway Check]
+
+    DEV --> DBSTORE[(Database)]
+    ALT --> DBSTORE
+    LOG --> DBSTORE
+    API --> DBSTORE
+```
+
+### Monitoring Pipeline
+
+```mermaid
+flowchart LR
+    A[Network Discovery] --> B[Device State]
+    B --> C[Connectivity Checks]
+    C --> D[Metrics]
+    D --> E[Health Score]
+    E --> F[Alert Evaluation]
+    F --> G[Dashboard / Logs]
+    F --> H[Recovery]
+```
+
+### Connectivity Model
+
+```text
+                    ┌────────────────────┐
+                    │   Network Status   │
+                    └─────────┬──────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          │                   │                   │
+          ▼                   ▼                   ▼
+      Gateway              Internet          Infrastructure
+          │                   │                   │
+          │          ┌────────┼────────┐      ┌────┼────┐
+          │          ▼        ▼        ▼      ▼    ▼    ▼
+          │         DNS      TCP      Web     DB  Logs Alerts
+          │
+          └──────────────────────────────────────────────
 ```
 
 ---
 
-# 🔎 Network Discovery
+## 🔎 Network Discovery
 
-برای شناسایی دستگاه‌های موجود در شبکه محلی از **ARP Scanning** استفاده می‌شود.
+The discovery subsystem uses **ARP-based scanning** to identify hosts on the local network.
 
-فرآیند کلی:
+Typical workflow:
 
 ```text
-Network
-   ↓
-ARP Scan
-   ↓
-Detected Devices
-   ↓
-IP + MAC
-   ↓
+Network / Subnet
+       ↓
+    ARP Scan
+       ↓
+Detected Hosts
+       ↓
+ IP + MAC data
+       ↓
 Device Reconciliation
-   ↓
-Database
+       ↓
+   Database
 ```
 
-هنگام مشاهده دستگاه جدید:
-
-```text
-New Device
-    ↓
-Create / Update Device
-    ↓
-first_seen
-    ↓
-is_online = True
-```
-
-و هنگام عدم مشاهده یک دستگاه شناخته‌شده:
-
-```text
-Missing Device
-      ↓
-Offline Detection
-      ↓
-Update Device State
-      ↓
-Create / Update Alert
-```
+When a new host is detected, the system can create a corresponding device record. When an existing host is no longer detected, its state can be updated and the alerting layer can evaluate the resulting change.
 
 ---
 
-# 💻 مانیتورینگ دستگاه‌ها
+## 💻 Device Model
 
-برای هر Device می‌توان اطلاعاتی مانند موارد زیر را نگهداری کرد:
-
-- IP Address
-- MAC Address
-- Name
-- Device Type
-- Online Status
-- First Seen
-- Last Seen
-- Latest Ping
-- Latency
-- Packet Loss
-
-ساختار منطقی:
+A monitored device can contain information such as:
 
 ```text
 Device
@@ -241,7 +322,7 @@ Device
 ├── MAC Address
 ├── Name
 ├── Device Type
-├── Is Online
+├── Online Status
 ├── First Seen
 ├── Last Seen
 ├── Latest Ping
@@ -249,22 +330,15 @@ Device
 └── Packet Loss
 ```
 
+This model enables both current-state monitoring and basic historical context.
+
 ---
 
-# 📡 مانیتورینگ اتصال شبکه
+## 📡 Connectivity Monitoring
 
-سیستم برای تعیین وضعیت شبکه فقط به یک Ping وابسته نیست، بلکه چند لایه مختلف را بررسی می‌کند.
+A key design principle is to treat connectivity as a **multi-layer problem**.
 
-```mermaid
-flowchart LR
-    A[Local Gateway] --> B[Internet Connectivity]
-    B --> C[DNS]
-    C --> D[TCP]
-    D --> E[HTTP/HTTPS]
-    E --> F[Database]
-```
-
-برای نمونه ممکن است وضعیت زیر مشاهده شود:
+For example, the following state is possible:
 
 ```text
 Gateway      → UP
@@ -273,229 +347,164 @@ TCP 443      → UP
 HTTP         → DOWN
 ```
 
-در چنین شرایطی سیستم می‌تواند تفاوت میان «قطع کامل شبکه» و «اختلال یک سرویس خاص» را بهتر مشخص کند.
+This does not necessarily mean that the entire network is offline. Instead, it indicates that the failure may be isolated to a specific application/service layer.
+
+This layered approach makes diagnosis more useful than relying on a single ping result.
 
 ---
 
-# 🌍 مانیتورینگ سرویس‌ها
+## 🌍 Service Monitoring
 
-یکی از بخش‌های مهم پروژه، بررسی سلامت سرویس‌های زیرساختی است.
+### DNS Check
 
-## DNS
+Resolves a configurable hostname and measures the result and response time.
 
-بررسی Resolution شدن یک Hostname مشخص:
+### Web Check
+
+Verifies that a configurable HTTP/HTTPS URL can be reached.
+
+### TCP Check
+
+Attempts to establish a TCP connection to a configurable host and port.
+
+### Database Check
+
+Verifies that the Django application can communicate with its database backend.
+
+### Gateway Check
+
+Tests reachability of the local network gateway.
+
+### Service Classification
+
+A service result can be classified into states such as:
 
 ```text
-DNS_HOSTNAME
+SUCCESS
+WARNING / DEGRADED
+DANGER / FAILED
 ```
 
-## Web
+The exact classification can take both **availability** and **latency threshold** into account.
 
-بررسی دسترسی به یک URL مشخص از طریق HTTP یا HTTPS:
+Example threshold configuration:
 
-```text
-WEB_URL
-```
+| Check | Example Degraded Threshold |
+|---|---:|
+| DNS | `200 ms` |
+| Web | `1000 ms` |
+| TCP | `300 ms` |
+| Database | `100 ms` |
+| Gateway | `50 ms` |
 
-## TCP
-
-بررسی امکان برقراری اتصال به Host و Port مشخص:
-
-```text
-TCP_HOST
-TCP_PORT
-```
-
-## Database
-
-بررسی وضعیت اتصال Django به Database.
-
-## Gateway
-
-بررسی دسترسی به Gateway شبکه محلی.
+These values are examples of the project's monitoring logic and can be adjusted according to the target environment.
 
 ---
 
-# ⚙️ Monitoring Targets قابل تنظیم
+## 📊 Latency & Packet Loss
 
-یکی از ویژگی‌های مهم سیستم این است که Targetهای Monitoring می‌توانند قابل تنظیم باشند و به مقادیر ثابت وابسته نباشند.
+### Latency
 
-نمونه تنظیمات:
+Latency is measured from monitoring requests such as ICMP/ping operations and service checks.
+
+Example:
 
 ```text
-DNS Hostname:
-google.com
-
-Web URL:
-https://www.google.com
-
-TCP Host:
-www.google.com
-
-TCP Port:
-443
+Ping Target : 8.8.8.8
+Latency     : 92.1 ms
 ```
 
-این قابلیت امکان استفاده از سیستم برای سرویس‌ها و شبکه‌های مختلف را فراهم می‌کند.
+Latency values can be used for:
+
+- Real-time status
+- Trend visualization
+- Degraded-service classification
+- Health scoring
+- Alert evaluation
+
+### Packet Loss
+
+Packet loss is calculated from sent and successfully received packets.
+
+Example:
+
+```text
+Packets Sent     : 100
+Packets Received : 97
+Packet Loss      : 3%
+```
+
+High packet loss can indicate congestion, poor wireless conditions, routing issues, unstable links, or hardware/network problems.
 
 ---
 
-# 📊 Latency و Packet Loss
+## ❤️ Health Score
 
-## Latency
+The health score provides a single, human-readable indicator of the current monitoring state.
 
-سیستم زمان پاسخ Network Requestها را اندازه‌گیری می‌کند.
-
-نمونه:
-
-```text
-Target:
-8.8.8.8
-
-Result:
-92.1 ms
-```
-
-Latency می‌تواند در موارد زیر استفاده شود:
-
-- نمایش مقدار فعلی
-- محاسبه Health Score
-- نمایش Trend
-- تشخیص High Latency
-- تولید Alert
-
-## Packet Loss
-
-Packet Loss نیز یکی از شاخص‌های کلیدی سلامت شبکه است.
-
-نمونه:
-
-```text
-Packets Sent:      100
-Packets Received:   97
-
-Packet Loss:       3%
-```
-
-Packet Loss زیاد می‌تواند نشانه‌ای از مشکلاتی مانند Congestion، Wi-Fi ضعیف، Routing Problem یا ناپایداری اتصال باشد.
-
----
-
-# ❤️ Health Score
-
-برای ارائه یک نمای ساده از سلامت شبکه، سیستم یک **Health Score** در بازه 0 تا 100 محاسبه می‌کند.
+Conceptually:
 
 ```mermaid
-flowchart TD
-    A[Latency] --> D[Health Score]
-    B[Packet Loss] --> D
-    C[Availability] --> D
+flowchart LR
+    A[Availability Score] --> D[Health Score]
+    B[Packet Loss Score] --> D
+    C[Latency Score] --> D
     D --> E[0 - 100]
 ```
 
-## امتیاز Latency
+The project contains scoring functions for:
 
-به صورت کلی، هرچه Latency کمتر باشد امتیاز بهتر است:
+- Latency
+- Packet loss
+- Availability
 
-| Latency | وضعیت کلی |
-|---:|---|
-| ≤ 50 ms | عالی |
-| ≤ 100 ms | خوب |
-| ≤ 200 ms | متوسط |
-| ≤ 500 ms | ضعیف |
-| > 500 ms | بحرانی |
+The final value is bounded to the `0–100` range.
 
-## Availability Score
-
-Availability در محدوده مشخص نرمال‌سازی می‌شود و در Health Score مورد استفاده قرار می‌گیرد.
-
-## Packet Loss Score
-
-هرچه Packet Loss کمتر باشد، امتیاز سلامت شبکه بیشتر خواهد بود.
-
-در نتیجه Health Score دیدی ترکیبی از وضعیت عملکرد شبکه ارائه می‌دهد.
-
----
-
-# 🚨 سیستم Alerting
-
-سیستم Alerting یکی از اجزای اصلی پروژه است و برای تشخیص، ثبت و مدیریت رخدادهای غیرعادی طراحی شده است.
-
-اهداف اصلی این بخش:
-
-- تشخیص Event
-- تعیین Severity
-- مدیریت State
-- جلوگیری از Alert Spam
-- تشخیص Recovery
-- به‌روزرسانی وضعیت Incident
-
----
-
-# 🔔 Severity
-
-سطوح اصلی هشدار:
+A simplified interpretation is:
 
 ```text
-INFO
-WARNING
-CRITICAL
+90 - 100   Excellent
+75 - 89    Good
+50 - 74    Moderate
+25 - 49    Poor
+0  - 24    Critical
 ```
 
-اولویت‌ها:
-
-```text
-INFO      → 1
-WARNING   → 2
-CRITICAL  → 3
-```
-
-این ساختار امکان دسته‌بندی و اولویت‌بندی Alertها را فراهم می‌کند.
+These ranges are intended as a UI interpretation layer and can be changed independently of the underlying scoring functions.
 
 ---
 
-# 🔄 مدیریت وضعیت Alert
+## 🚨 Alerting System
 
-برای اینکه یک مشکل مداوم باعث تولید Alertهای بی‌شمار نشود، وضعیت Alert به شکل State مدیریت می‌شود.
+Alerting is designed around **events + state**, rather than treating every polling result as an entirely new incident.
+
+### Alert Lifecycle
 
 ```mermaid
 stateDiagram-v2
     [*] --> Normal
-    Normal --> ProblemDetected
-    ProblemDetected --> AlertActive
-    AlertActive --> AlertActive : Problem persists
-    AlertActive --> Recovered : Problem resolved
+    Normal --> ProblemDetected : failure / threshold breach
+    ProblemDetected --> AlertActive : alert created
+    AlertActive --> AlertActive : problem persists
+    AlertActive --> Recovered : service restored
     Recovered --> Normal
-    Normal --> [*]
+    Recovered --> AlertActive : problem returns
 ```
 
-روند ساده:
+### Severity
 
 ```text
-Normal
-  ↓
-Problem Detected
-  ↓
-Alert Created
-  ↓
-Problem Persists
-  ↓
-Existing Alert Updated
-  ↓
-Problem Resolved
-  ↓
-Recovery
+INFO      → Priority 1
+WARNING   → Priority 2
+CRITICAL  → Priority 3
 ```
 
----
+### Why State Matters
 
-# 🛑 جلوگیری از Alert Spam
-
-یکی از مشکلات رایج سامانه‌های Monitoring، تولید تعداد بسیار زیادی Alert مشابه است.
-
-مثلاً:
+Without state management, a persistent failure could create a new alert every few seconds:
 
 ```text
+Internet Down
 Internet Down
 Internet Down
 Internet Down
@@ -503,15 +512,13 @@ Internet Down
 ...
 ```
 
-در طراحی Alerting تلاش شده است یک Incident پایدار به یک مجموعه بزرگ از Alertهای تکراری تبدیل نشود و وضعیت موجود مدیریت شود.
+A state-aware system can instead maintain one active incident and update its state until recovery occurs.
 
----
+### Recovery
 
-# 🟢 Recovery Detection
+Recovery is treated as a meaningful event rather than silently returning to normal.
 
-سیستم علاوه بر تشخیص Failure، بازگشت سرویس را نیز تشخیص می‌دهد.
-
-مثال:
+Example:
 
 ```text
 Internet
@@ -527,95 +534,126 @@ RECOVERY EVENT
 INFO
 ```
 
-این قابلیت باعث می‌شود کاربر هم از شروع مشکل و هم از رفع آن مطلع شود.
+---
+
+## 📝 Logging
+
+Monitoring logs provide an operational history of important system events.
+
+Typical examples:
+
+```text
+INFO     Ping successful - 70.53 ms
+WARNING  High latency detected
+CRITICAL Internet connectivity lost
+INFO     Internet connectivity restored
+```
+
+Logs are useful for:
+
+- Troubleshooting
+- Incident analysis
+- Debugging
+- Understanding recovery behavior
+- Correlating alerts with monitoring events
 
 ---
 
-# 📝 Logging
+## 📈 Dashboard
 
-رخدادهای مهم سیستم در قالب Log ثبت می‌شوند.
+The web dashboard is the main operational interface.
 
-نمونه‌ها:
+Typical sections include:
+
+### Network Health
+
+Displays an overall health score and major health indicators.
+
+### Service Status
+
+Shows the state of gateway, DNS, web, TCP, database, and other checks.
+
+### Device Table
+
+Displays monitored devices and their latest known state.
+
+### Alerts
+
+Shows recent alert events and severity levels.
+
+### Live Logs
+
+Presents monitoring events in a readable format.
+
+### Latency Trend
+
+Visualizes recent latency values and helps identify degradation or instability.
+
+### Asynchronous Updates
+
+Selected dashboard components can be refreshed using JavaScript `fetch()` / AJAX without a complete page reload.
+
+Example flow:
 
 ```text
-INFO
-Ping successful
+Dashboard
+    ↓
+fetch()
+    ↓
+Django API
+    ↓
+Run Service Checks
+    ↓
+JSON Response
+    ↓
+Update UI
 ```
-
-```text
-WARNING
-High latency detected
-```
-
-```text
-CRITICAL
-Internet connectivity lost
-```
-
-```text
-INFO
-Internet connectivity restored
-```
-
-Logging برای Debug، تحلیل رخدادها و بررسی تاریخچه وضعیت سیستم اهمیت زیادی دارد.
 
 ---
 
-# 📈 Dashboard
+## 🔐 Authentication & Security
 
-Dashboard نقطه مرکزی مشاهده اطلاعات سیستم است.
+The project uses Django's authentication mechanisms for protected application areas.
 
-بخش‌های اصلی Dashboard می‌توانند شامل موارد زیر باشند:
+Recommended production practices include:
 
-### ❤️ Network Health
+- `DEBUG=False`
+- Environment-based secrets
+- Restricted `ALLOWED_HOSTS`
+- Secure database credentials
+- No secrets committed to Git
+- Proper CSRF protection
+- HTTPS in production
+- Restricted access to monitoring endpoints
 
-```text
-Health Score: 85%
+Example environment-based secret configuration:
+
+```python
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
 ```
 
-### 📡 Service Status
+---
 
-- Internet
-- Gateway
-- DNS
-- TCP
-- Web
-- Database
+## 🧰 Technology Stack
 
-### 💻 Devices
-
-- IP
-- MAC
-- Name
-- Type
-- Status
-- Latency
-
-### 🚨 Alerts
-
-نمایش Alertهای اخیر بر اساس Severity.
-
-### 📝 Logs
-
-نمایش رخدادهای اخیر سیستم.
-
-### 📊 Latency Trend
-
-نمایش روند Latency در نمونه‌های اخیر.
+| Layer | Technology |
+|---|---|
+| Backend | **Python + Django** |
+| ORM | **Django ORM** |
+| Network Discovery | **Scapy / ARP** |
+| Connectivity | **ICMP / TCP / DNS / HTTP(S)** |
+| Ping | **ping3** |
+| Frontend | **HTML5 / CSS3 / JavaScript** |
+| Templates | **Django Templates** |
+| Database | **MySQL** |
+| Containerization | **Docker / Docker Compose** |
+| Version Control | **Git / GitHub** |
 
 ---
 
-# 🔐 احراز هویت
+## 📁 Project Structure
 
-دسترسی به بخش‌های حساس سیستم از طریق Authentication کنترل می‌شود.
-
-هدف این بخش جلوگیری از دسترسی افراد غیرمجاز به اطلاعات Monitoring و Dashboard است.
-
----
-
-# 📁 ساختار پروژه
-
-ساختار کلی پروژه می‌تواند مشابه ساختار زیر باشد:
+A representative structure is:
 
 ```text
 Network_Monitoring/
@@ -626,6 +664,7 @@ Network_Monitoring/
 ├── docker-compose.yml
 ├── .env
 ├── .gitignore
+├── README.md
 │
 ├── project/
 │   ├── settings.py
@@ -658,81 +697,36 @@ Network_Monitoring/
 └── media/
 ```
 
-> ساختار واقعی ممکن است با نسخه نهایی Repository کمی متفاوت باشد.
+> The exact file names may differ slightly depending on the final project version. The structure above represents the logical organization of the application.
 
 ---
 
-# 🧰 Technology Stack
+## 📦 Installation
 
-## Backend
-
-- Python
-- Django
-- Django ORM
-
-## Network
-
-- Scapy
-- ping3
-- ARP
-- ICMP
-- TCP
-- DNS
-- HTTP/HTTPS
-
-## Database
-
-- MySQL
-- Django Database Backend
-
-## Frontend
-
-- HTML5
-- CSS3
-- JavaScript
-- Django Templates
-- AJAX / Fetch API
-
-## Infrastructure
-
-- Docker
-- Docker Compose
-- Environment Variables
-
-## Development
-
-- Git
-- GitHub
-- Linux / Windows
-
----
-
-# 📦 نصب و راه‌اندازی
-
-## 1. دریافت پروژه
+### 1. Clone the repository
 
 ```bash
 git clone <repository-url>
 cd Network_Monitoring
 ```
 
-## 2. ساخت Virtual Environment
+### 2. Create a virtual environment
 
-### Windows
+#### Windows
 
 ```bash
 python -m venv venv
 venv\Scripts\activate
 ```
 
-### Linux / macOS
+#### Linux / macOS
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-## 3. نصب وابستگی‌ها
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -740,46 +734,42 @@ pip install -r requirements.txt
 
 ---
 
-# ⚙️ Configuration
+## ⚙️ Configuration
 
-تنظیمات حساس بهتر است از Environment Variables دریافت شوند.
+Create a `.env` file or configure equivalent environment variables.
 
-نمونه:
+Example:
 
 ```env
-DJANGO_SECRET_KEY=your-secret-key
+DJANGO_SECRET_KEY=change-me
 DJANGO_DEBUG=False
 
 DB_NAME=network_monitor
-DB_USER=your-user
-DB_PASSWORD=your-password
+DB_USER=network_user
+DB_PASSWORD=change-me
 DB_HOST=localhost
 DB_PORT=3306
-```
 
-تنظیمات Monitoring نیز می‌توانند شامل موارد زیر باشند:
-
-```env
 DNS_HOSTNAME=google.com
 WEB_URL=https://www.google.com
 TCP_HOST=www.google.com
 TCP_PORT=443
 ```
 
-> اطلاعات حساس مانند Password و Secret Key نباید داخل Repository عمومی قرار گیرند.
+> Never commit real passwords, secret keys, tokens, or other credentials to GitHub.
 
 ---
 
-# 🗄 Database
+## 🗄 Database Setup
 
-پس از تنظیم Database، Migrationها را اجرا کنید:
+After configuring the database:
 
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-برای ساخت Superuser:
+Create an administrative user:
 
 ```bash
 python manage.py createsuperuser
@@ -787,224 +777,154 @@ python manage.py createsuperuser
 
 ---
 
-# ▶️ اجرای پروژه
+## ▶️ Run Locally
 
-برای اجرای Development Server:
+Start Django's development server:
 
 ```bash
 python manage.py runserver
 ```
 
-سپس به آدرس زیر مراجعه کنید:
+Open:
 
 ```text
 http://127.0.0.1:8000/
 ```
 
+For development, the application can then be accessed from a browser and the monitoring dashboard used to inspect devices, services, alerts, logs, and network health.
+
 ---
 
-# 🐳 Docker
+## 🐳 Docker
 
-پروژه برای اجرای Containerized نیز قابل استفاده است.
-
-ساخت Image:
+### Build the image
 
 ```bash
 docker build -t network-monitoring .
 ```
 
-اجرای Container:
+### Run the container
 
 ```bash
-docker run -p 8000:8000 network-monitoring
+docker run --rm -p 8000:8000 network-monitoring
 ```
 
-در صورت استفاده از Docker Compose:
+### Docker Compose
+
+If a `docker-compose.yml` is provided:
 
 ```bash
 docker compose up --build
 ```
 
----
+To stop the services:
 
-# 🔒 امنیت
-
-نکات مهم امنیتی:
-
-### Secret Key
-
-Secret Key نباید در Source Code به صورت ثابت قرار گیرد.
-
-```python
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
-```
-
-### Debug
-
-در Production:
-
-```text
-DEBUG=False
-```
-
-### Allowed Hosts
-
-تنها Hostهای موردنیاز باید در `ALLOWED_HOSTS` تعریف شوند.
-
-### Secrets
-
-اطلاعات حساس شامل موارد زیر نباید Commit شوند:
-
-- Database Password
-- Secret Key
-- API Keys
-- Credentials
-
-### Authentication
-
-بخش‌های مدیریتی و Dashboard باید تحت کنترل Authentication باشند.
-
----
-
-# ⚡ عملکرد و بهینه‌سازی
-
-در طراحی سیستم موارد زیر مورد توجه قرار گرفته‌اند:
-
-- جلوگیری از درخواست‌های غیرضروری
-- جداسازی Monitoring Logic از Viewها
-- نگهداری State در Database
-- جلوگیری از Alertهای تکراری
-- محدود کردن داده‌های Trend
-- استفاده از Polling / Fetch برای به‌روزرسانی بخش‌های Dashboard
-- کاهش وابستگی مستقیم UI به عملیات سنگین Network
-- استفاده از Transaction در بخش‌های حساس State Management
-
----
-
-# 🔄 به‌روزرسانی Dashboard
-
-برای بعضی از بخش‌ها می‌توان بدون Reload کامل صفحه اطلاعات را به‌روز کرد.
-
-```text
-Dashboard
-    ↓
-JavaScript fetch()
-    ↓
-Django API
-    ↓
-Monitoring / Service Check
-    ↓
-JSON Response
-    ↓
-Update UI
-```
-
-این مدل باعث تجربه کاربری روان‌تر و کاهش Reloadهای غیرضروری می‌شود.
-
----
-
-# 🧪 تست
-
-سناریوهای پیشنهادی برای تست سیستم:
-
-## قطع اینترنت
-
-بررسی:
-
-```text
-Connectivity
-Alert
-Log
-Health Score
-```
-
-## بازگشت اینترنت
-
-بررسی ایجاد Recovery Event.
-
-## Latency بالا
-
-بررسی تغییر Health Score و Severity هشدار.
-
-## Packet Loss
-
-بررسی تغییر وضعیت شبکه و Alert.
-
-## Offline شدن Device
-
-بررسی:
-
-```text
-Device Status
-Alert
-Log
-```
-
-## خرابی یک سرویس
-
-مثلاً غیرفعال کردن Web یا TCP Target و بررسی Service Monitoring.
-
----
-
-# 🧩 جریان کلی سیستم
-
-```mermaid
-flowchart TD
-    A[Network Discovery] --> B[Device Monitoring]
-    B --> C[Connectivity Monitoring]
-    C --> D[Performance Metrics]
-    D --> E[Health Score]
-    E --> F[Alert Management]
-    F --> G[Dashboard & Logs]
-
-    C --> C1[Gateway]
-    C --> C2[DNS]
-    C --> C3[TCP]
-    C --> C4[HTTP/HTTPS]
-    C --> C5[Database]
-
-    D --> D1[Latency]
-    D --> D2[Packet Loss]
-    D --> D3[Availability]
+```bash
+docker compose down
 ```
 
 ---
 
-# 🔮 بهبودهای آینده
+## 🧪 Testing Scenarios
 
-قابلیت‌های زیر می‌توانند در نسخه‌های بعدی اضافه شوند:
+The monitoring platform should be tested against realistic operational conditions.
 
-## Notification System
+### Internet outage
 
-ارسال هشدار از طریق:
+Verify:
 
-- Email
-- Telegram
-- Discord
-- Web Push
+- connectivity state
+- alert creation
+- severity
+- logs
+- health score
+- recovery after restoration
 
-## Historical Analytics
+### High latency
 
-ذخیره و تحلیل بلندمدت:
+Verify:
 
-- Latency
-- Packet Loss
-- Availability
-- Downtime
+- latency measurement
+- threshold classification
+- health score degradation
+- alert behavior
 
-## Advanced Charts
+### Packet loss
 
-افزودن نمودارهای:
+Verify:
 
-- Latency History
-- Packet Loss History
-- Availability
-- Device Uptime
-- Network Traffic
+- packet-loss calculation
+- health-score impact
+- alert state transitions
 
-## User Roles
+### Device offline
 
-ایجاد Roleهای مختلف مانند:
+Remove a device from the network and verify:
+
+- device state change
+- `last_seen` behavior
+- alert generation
+- recovery after the device returns
+
+### Service failure
+
+Temporarily make a monitored service unavailable and verify:
+
+- service state
+- latency / failure classification
+- logs
+- alert lifecycle
+- recovery
+
+---
+
+## ⚡ Performance & Reliability Considerations
+
+The system is designed with several practical considerations:
+
+- Separate monitoring logic from presentation logic
+- Avoid unnecessary repeated network requests
+- Keep active alert state in persistent storage where required
+- Prevent alert duplication for persistent failures
+- Limit the amount of recent trend data rendered on the dashboard
+- Use asynchronous requests for selected live dashboard components
+- Use database transactions around sensitive alert-state transitions
+- Keep monitoring thresholds configurable
+
+For production-scale monitoring, long-running checks should ideally be moved to dedicated background workers or task queues instead of being performed directly inside ordinary request/response cycles.
+
+---
+
+## 🛣️ Future Improvements
+
+The current architecture can be extended with:
+
+### 📬 Notifications
+
+- Email notifications
+- Telegram notifications
+- Discord notifications
+- Browser / Web Push notifications
+
+### 📚 Historical Analytics
+
+- Long-term latency history
+- Packet-loss history
+- Uptime and downtime analytics
+- Availability reports
+- Incident history
+
+### 📊 Advanced Visualization
+
+- Latency charts
+- Packet-loss graphs
+- Availability charts
+- Device uptime charts
+- Network traffic visualization
+
+### 👥 User & Role Management
+
+Possible roles:
 
 ```text
 Admin
@@ -1012,53 +932,49 @@ Operator
 Viewer
 ```
 
-## Alert Rules
+### 🧠 User-Defined Alert Rules
 
-امکان تعریف Rule توسط کاربر:
+Example:
 
 ```text
-IF latency > 200ms
+IF latency > 200 ms
 THEN WARNING
 ```
-
-یا:
 
 ```text
 IF packet_loss > 20%
 THEN CRITICAL
 ```
 
-## Maintenance Mode
+### 🛠 Maintenance Mode
 
-جلوگیری از تولید Alert هنگام تعمیرات برنامه‌ریزی‌شده.
+Allow an operator to temporarily suppress expected alerts while a device or service is under maintenance.
 
-## Alert Escalation
+### 📈 Alert Escalation
 
-افزایش Severity در صورت ادامه‌دار بودن مشکل:
+Example:
 
 ```text
 WARNING
    ↓
-5 minutes
+Problem persists
    ↓
 CRITICAL
 ```
 
-## Multi-Network Monitoring
+### 🌍 Multi-Network Monitoring
 
-پشتیبانی از چند Subnet و چند Network Segment.
+Support monitoring for multiple subnets, network segments, or sites.
 
-## Distributed Monitoring
+### 🛰 Distributed Monitoring
 
-استفاده از Monitoring Agentهای متعدد برای شبکه‌های مختلف.
+Deploy independent monitoring agents across different networks and aggregate their results centrally.
 
 ---
 
-# 🎓 هدف دانشگاهی
+## 🎓 Academic / Engineering Scope
 
-این پروژه با هدف پیاده‌سازی و ترکیب مفاهیم **مهندسی شبکه** و **توسعه نرم‌افزار** طراحی شده است.
-
-مفاهیم کلیدی مورد استفاده:
+This project brings together concepts from several areas of computer engineering and software development:
 
 - Network Monitoring
 - Network Discovery
@@ -1076,76 +992,100 @@ CRITICAL
 - Software Architecture
 - Containerization
 
-این پروژه نمونه‌ای از ترکیب یک سامانه مانیتورینگ شبکه با یک Web Application متمرکز است.
+It demonstrates how **network-level measurements** can be collected, persisted, processed, and presented through a modern web application.
 
 ---
 
-# 📌 وضعیت پروژه
+## 📌 Project Status
 
-```text
-Project:          Network Monitoring System
-Backend:          Django
-Language:         Python
-Database:         MySQL
-Network:          Scapy / ping3
-Frontend:         HTML / CSS / JavaScript
-Deployment:       Docker
-Monitoring:       Network + Services
-Alerting:         Enabled
-Authentication:   Enabled
-```
+| Component | Status |
+|---|---|
+| Django Backend | ✅ Implemented |
+| Network Discovery | ✅ Implemented |
+| Device Monitoring | ✅ Implemented |
+| Ping / Latency Monitoring | ✅ Implemented |
+| Packet Loss Monitoring | ✅ Implemented |
+| Gateway Monitoring | ✅ Implemented |
+| DNS Monitoring | ✅ Implemented |
+| Web Monitoring | ✅ Implemented |
+| TCP Monitoring | ✅ Implemented |
+| Database Health Check | ✅ Implemented |
+| Health Score | ✅ Implemented |
+| Alert Management | ✅ Implemented |
+| Alert Severity | ✅ Implemented |
+| Alert State Handling | ✅ Implemented |
+| Recovery Detection | ✅ Implemented |
+| Logging | ✅ Implemented |
+| Dashboard | ✅ Implemented |
+| Authentication | ✅ Implemented |
+| Configurable Targets | ✅ Implemented |
+| Docker Support | ✅ Supported |
 
 ---
 
-# 🤝 مشارکت
+## 🤝 Contributing
 
-برای مشارکت در توسعه پروژه:
+Contributions and improvements are welcome.
 
-1. Repository را Fork کنید.
-2. یک Branch جدید ایجاد کنید.
-3. تغییرات را اعمال کنید.
-4. تست‌های لازم را اجرا کنید.
-5. Pull Request ارسال کنید.
-
-نمونه:
+Typical workflow:
 
 ```bash
-git checkout -b feature/new-monitoring-feature
+git checkout -b feature/my-feature
 
 git add .
+git commit -m "Add my feature"
+git push origin feature/my-feature
+```
 
-git commit -m "Add new monitoring feature"
+Then open a Pull Request on GitHub.
 
-git push origin feature/new-monitoring-feature
+---
+
+## 📄 License
+
+This project is currently developed for **educational and academic purposes**.
+
+If a specific open-source license is selected later, this section should be replaced with that license and its associated file (for example, `LICENSE`).
+
+---
+
+## 👨‍💻 Author
+
+**Network Monitoring System**
+
+Developed as a Computer Engineering project with a focus on:
+
+```text
+Network Monitoring
+       +
+Network Reliability
+       +
+Django Web Development
+       +
+Infrastructure Health
+       +
+Alert Management
 ```
 
 ---
 
-# 📄 License
+## ⭐ Final Summary
 
-این پروژه با هدف آموزشی و دانشگاهی توسعه داده شده است.
+**Network Monitoring System** provides a centralized platform for discovering devices, monitoring connectivity, evaluating service health, measuring network performance, calculating an overall health score, managing alerts, recording events, and presenting the current state of the infrastructure through a web dashboard.
 
-در صورت تعیین License رسمی، این بخش را می‌توان با License موردنظر جایگزین کرد.
-
----
-
-# ⭐ جمع‌بندی
-
-**Network Monitoring System** یک سامانه متمرکز برای مشاهده، تحلیل و مدیریت سلامت شبکه است.
-
-سیستم از **Network Discovery** شروع می‌کند، دستگاه‌های موجود را شناسایی می‌کند، وضعیت اتصال و سرویس‌های مختلف را بررسی می‌کند، شاخص‌هایی مانند **Latency، Packet Loss و Availability** را تحلیل می‌کند و در نهایت با استفاده از **Health Score** و **Alerting System** وضعیت شبکه را به شکل قابل فهم در اختیار کاربر قرار می‌دهد.
+The core monitoring path can be summarized as:
 
 ```text
              🌐 NETWORK
                   │
                   ▼
-          🔍 NETWORK DISCOVERY
+          🔎 DISCOVERY
                   │
                   ▼
-            💻 DEVICES
+           💻 DEVICES
                   │
                   ▼
-        📡 CONNECTIVITY CHECKS
+        📡 CONNECTIVITY
                   │
                   ▼
             📊 METRICS
@@ -1154,16 +1094,13 @@ git push origin feature/new-monitoring-feature
           ❤️ HEALTH SCORE
                   │
                   ▼
-          🚨 ALERT MANAGEMENT
+          🚨 ALERT ENGINE
                   │
                   ▼
-          📈 DASHBOARD & LOGS
+            📝 LOGGING
+                  │
+                  ▼
+            📈 DASHBOARD
 ```
 
-> **یک پلتفرم تحت وب برای شناسایی، پایش، تحلیل و مدیریت سلامت شبکه و رخدادهای زیرساختی.**
-
----
-
-<p align="center">
-  ساخته‌شده با ❤️ برای مانیتورینگ بهتر شبکه
-</p>
+> **A complete web-based network monitoring platform for discovering, monitoring, analyzing, and managing network health and infrastructure events.**
