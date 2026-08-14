@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Avg
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from Connection.dns_lookup import lookup as dns_lookup
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
@@ -14,7 +15,7 @@ from Connection.snmp import poll_device
 from .models import Device, SystemSettings, BandwidthSample
 from Devices import device as device_scanner
 from .models import Ping
-from django.utils import timezone
+from time import timezone
 from .alert_manager import *
 
 PERIOD_DAYS = {"daily": 1, "weekly": 7, "monthly": 30}
@@ -794,37 +795,37 @@ def latency_history_api(request):
     and a tooltip, hence a dedicated JSON endpoint instead of baking the
     bars into the page HTML."""
 
-    pings = (
-        Ping.objects
-        .order_by("-created_at")[:30]
-    )
-
-    pings = list(reversed(pings))
+    limit = 30
+    pings = list(Ping.objects.all().order_by("-created_at")[:limit])
+    pings.reverse()
 
     points = []
 
-    for ping in pings:
-        latency = (
-            float(ping.latency_ms)
-            if ping.success and ping.latency_ms is not None
+    for p in pings:
+        local_time = timezone.localtime(p.created_at)
+
+        # Failed pings are plotted as 0 ms rather than omitted, so a
+        # timeout still shows up as a visible dip on the chart instead
+        # of a gap. `success` is kept alongside so the frontend can
+        # still tell a real 0ms reply apart from a failed one (red
+        # point + "Timeout" tooltip instead of a normal point).
+        latency_ms = (
+            float(p.latency_ms)
+            if p.success and p.latency_ms is not None
             else 0
         )
 
         points.append({
-            "time": timezone.localtime(
-                ping.created_at
-            ).strftime("%H:%M:%S"),
-
-            "latency_ms": latency,
-
-            "success": bool(ping.success),
-
-            "target": ping.target,
+            "time": local_time.strftime("%H:%M:%S"),
+            "latency_ms": latency_ms,
+            "success": p.success,
+            "target": p.target,
         })
 
     return JsonResponse({
         "points": points
     })
+
 
 @login_required
 def bandwidth_api(request):
@@ -952,6 +953,96 @@ def dashboard_view(request):
     }
 
     return render(request, "dashboard.html", context)
+
+@login_required
+def dashboard_stats_api(request):
+    """Fast, DB-only dashboard numbers: device/alert counts, packet
+    loss, health score and the recent-alerts table.
+
+    dashboard_view computes these once at page load, so previously they
+    stayed frozen until a manual refresh even though ping/services/logs
+    were already polling live - the mismatch was the actual bug report.
+    Kept as its own endpoint (not merged into ping_api/services_api)
+    because those two make real network calls with their own timeouts;
+    this one only reads from the database, so it stays cheap to poll
+    every cycle without waiting on a slow or unreachable target.
+    """
+
+    online_devices = Device.objects.filter(is_online=True)
+    open_alerts = Alert.objects.filter(is_resolved=False)
+    critical_alert_count = open_alerts.filter(severity="critical").count()
+    all_alerts = Alert.objects.all().order_by("-created_at")[:5]
+
+    recent_pings = list(Ping.objects.all().order_by("-created_at")[:10])
+    sample_size = len(recent_pings)
+    failed = sum(1 for p in recent_pings if not p.success)
+
+    packet_loss = (
+        round((failed / sample_size) * 100, 1)
+        if sample_size
+        else 0
+    )
+
+    availability = round(100 - packet_loss, 1)
+
+    successful_latencies = [
+        p.latency_ms
+        for p in recent_pings
+        if p.success and p.latency_ms is not None
+    ]
+
+    latest_latency = (
+        successful_latencies[0]
+        if successful_latencies
+        else None
+    )
+
+    settings_obj = SystemSettings.load()
+    gateway_ip = get_default_gateway()
+
+    services = run_service_checks(
+        gateway_ip,
+        settings_obj
+    )
+
+    health_score = calculate_health_score(
+        availability=availability,
+        packet_loss=packet_loss,
+        latency_ms=latest_latency,
+        services=services,
+    )
+
+    if health_score >= 80:
+        health_tier = "good"
+    elif health_score >= 70:
+        health_tier = "medium"
+    else:
+        health_tier = "bad"
+
+    alerts_payload = []
+
+    for alert in all_alerts:
+        alerts_payload.append({
+            "id": alert.id,
+            "url": reverse("alert_detail", args=[alert.id]),
+            "device_name": alert.device.display_name if alert.device else "سامانه",
+            "severity": alert.severity,
+            "severity_display": alert.get_severity_display(),
+            "badge_class": alert.badge_class,
+            "is_resolved": alert.is_resolved,
+            "created_at_iso": alert.created_at.isoformat(),
+        })
+
+    return JsonResponse({
+        "device_count": online_devices.count(),
+        "open_alert_count": open_alerts.count(),
+        "critical_alert_count": critical_alert_count,
+        "packet_loss": packet_loss,
+        "health_score": health_score,
+        "health_tier": health_tier,
+        "alerts": alerts_payload,
+    })
+
 
 def ping_api(request):
     if not request.user.is_authenticated:

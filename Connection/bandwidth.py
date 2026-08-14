@@ -11,7 +11,6 @@ import psutil
 
 
 def read_counters():
-    """Cumulative bytes sent/received across all interfaces since boot."""
     counters = psutil.net_io_counters()
     return {
         "bytes_sent": counters.bytes_sent,
@@ -22,11 +21,6 @@ def read_counters():
 def compute_rate(previous, current, elapsed_seconds):
     """Bits-per-second throughput between two {bytes_sent, bytes_recv}
     readings taken `elapsed_seconds` apart.
-
-    Counters only ever increase, except when a NIC/service restarts and
-    they reset to a smaller number - a negative delta means that
-    happened, so it's treated as "no data for this interval" (rate 0)
-    rather than reported as a negative speed.
     """
     if elapsed_seconds <= 0:
         return 0.0, 0.0

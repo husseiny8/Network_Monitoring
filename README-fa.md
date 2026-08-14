@@ -1,12 +1,10 @@
 # 🌐 سامانه مانیتورینگ شبکه (Network Monitoring System)
-
+# این متن توسط هوش مصنوعی نوشته شده است برای اطلاعات دقیق تر نسخه انگلیسی فایل README خوانده شود.
 > یک سامانه تحت وب مبتنی بر Django برای پایش شبکه، سرویس‌های زیرساختی، وضعیت دستگاه‌ها، شاخص‌های عملکرد و مدیریت هشدارها.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.x-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
   <img src="https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django">
-  <img src="https://img.shields.io/badge/MySQL-Database-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
-  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
   <img src="https://img.shields.io/badge/Network-Monitoring-0EA5E9?style=for-the-badge" alt="Network Monitoring">
 </p>
 
@@ -20,14 +18,10 @@
 
 - [معرفی پروژه](#-معرفی-پروژه)
 - [هدف پروژه](#-هدف-پروژه)
-- [قابلیت‌های اصلی](#-قابلیتهای-اصلی)
 - [معماری سیستم](#-معماری-سیستم)
 - [Network Discovery](#-network-discovery)
-- [مانیتورینگ دستگاه‌ها](#-مانیتورینگ-دستگاهها)
 - [مانیتورینگ اتصال شبکه](#-مانیتورینگ-اتصال-شبکه)
-- [مانیتورینگ سرویس‌ها](#-مانیتورینگ-سرویسها)
 - [Latency و Packet Loss](#-latency-و-packet-loss)
-- [Health Score](#-health-score)
 - [سیستم Alerting](#-سیستم-alerting)
 - [مدیریت وضعیت Alert](#-مدیریت-وضعیت-alert)
 - [Logging](#-logging)
@@ -35,12 +29,9 @@
 - [احراز هویت](#-احراز-هویت)
 - [ساختار پروژه](#-ساختار-پروژه)
 - [Technology Stack](#-technology-stack)
-- [نصب و راه‌اندازی](#-نصب-و-راهاندازی)
-- [Configuration](#-configuration)
 - [Database](#-database)
 - [Docker](#-docker)
 - [امنیت](#-امنیت)
-- [عملکرد](#-عملکرد)
 - [تست](#-تست)
 - [بهبودهای آینده](#-بهبودهای-آینده)
 - [هدف دانشگاهی](#-هدف-دانشگاهی)

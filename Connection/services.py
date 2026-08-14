@@ -7,7 +7,7 @@ import requests
 
 DEGRADED_THRESHOLD_MS = {
     "DNS": 200,
-    "Web Server": 1000,
+    "Web Server": 2000,
     "TCP Port": 300,
     "Gateway": 50,
 }

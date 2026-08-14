@@ -14,16 +14,14 @@
 <section class="stats-grid">
   <article class="stat-card">
     <span class="stat-label">دستگاه‌های فعال</span>
-    <strong class="stat-value">{{ device_count }}</strong>
+    <strong class="stat-value" id="deviceCountValue">{{ device_count }}</strong>
   </article>
   <article class="stat-card">
     <span class="stat-label">هشدارهای باز</span>
-    <strong class="stat-value">{{ open_alert_count }}</strong>
-    {% if critical_alert_count %}
-      <small class="trend down">{{ critical_alert_count }} مورد بحرانی</small>
-    {% else %}
-      <small class="trend up">بدون مورد بحرانی</small>
-    {% endif %}
+    <strong class="stat-value" id="openAlertCountValue">{{ open_alert_count }}</strong>
+    <small class="trend {% if critical_alert_count %}down{% else %}up{% endif %}" id="openAlertCountTrend">
+      {% if critical_alert_count %}{{ critical_alert_count }} مورد بحرانی{% else %}بدون مورد بحرانی{% endif %}
+    </small>
   </article>
   <article class="stat-card">
     <span class="stat-label">Latency</span>
@@ -36,22 +34,21 @@
   </article>
   <article class="stat-card">
     <span class="stat-label">Packet Loss</span>
-    <strong class="stat-value">{{ packet_loss }}%</strong>
-    {% if packet_loss > 10 %}
-      <small class="trend down">نیاز به بررسی</small>
-    {% else %}
-      <small class="trend up">در محدوده مطلوب</small>
-    {% endif %}
+    <strong class="stat-value" id="packetLossValue">{{ packet_loss }}%</strong>
+    <small class="trend {% if packet_loss > 10 %}down{% else %}up{% endif %}" id="packetLossTrend">
+      {% if packet_loss > 10 %}نیاز به بررسی{% else %}در محدوده مطلوب{% endif %}
+    </small>
   </article>
 </section>
 
 <div class="panel health-score-card">
 
     <div class="health-score-ring{% if health_score >= 80 %} good{% elif health_score >= 70 %} medium{% else %} bad{% endif %}"
+         id="healthScoreRing"
          style="--score: {{ health_score }};">
 
         <div class="health-score-inner">
-            <strong>{{ health_score }}%</strong>
+            <strong id="healthScoreValue">{{ health_score }}%</strong>
             <span>Health Score</span>
         </div>
 
@@ -60,13 +57,9 @@
     <div class="health-score-info">
         <span class="health-score-title">سلامت شبکه</span>
 
-        {% if health_score >= 80 %}
-            <span class="health-status good">عالی</span>
-        {% elif health_score >= 70 %}
-            <span class="health-status medium">قابل قبول</span>
-        {% else %}
-            <span class="health-status bad">نیازمند بررسی</span>
-        {% endif %}
+        <span class="health-status {% if health_score >= 80 %}good{% elif health_score >= 70 %}medium{% else %}bad{% endif %}" id="healthStatusBadge">
+            {% if health_score >= 80 %}عالی{% elif health_score >= 70 %}قابل قبول{% else %}نیازمند بررسی{% endif %}
+        </span>
     </div>
 
 </div>
@@ -127,7 +120,7 @@
       </tr>
     </thead>
 
-    <tbody>
+    <tbody id="recentAlertsBody">
       {% for alert in recent_alerts %}
         <tr class="alert-row {{ alert.severity }}{% if alert.is_resolved %} resolved{% endif %}">
 
@@ -193,21 +186,23 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
 
-    <script>
-const latencyCanvas = document.getElementById("latencyChart");
+<script>
+    const chartTextColor = "#8b93a8";
+    const chartGridColor = "rgba(255,255,255,.06)";
+    Chart.defaults.font.family = "'Vazirmatn', Tahoma, sans-serif";
+    Chart.defaults.color = chartTextColor;
 
-if (!latencyCanvas) {
-    console.error("latencyChart canvas not found!");
-} else {
+    // Parallel array to the latency chart's data points (per-point
+    // success/target, used by the tooltip + point color callbacks).
+    // Chart.js needs `data` itself to be a plain array of numbers
+    // lined up against `labels` - passing {y, success, target} objects
+    // with no `x` was the actual bug (the chart silently failed to
+    // plot anything), so that metadata now lives here instead.
+    let latencyMeta = [];
 
-    const latencyCtx = latencyCanvas.getContext("2d");
-
-    // آخرین داده‌های دریافت‌شده از API
-    let latencyPoints = [];
-
+    const latencyCtx = document.getElementById("latencyChart").getContext("2d");
     const latencyChart = new Chart(latencyCtx, {
         type: "line",
-
         data: {
             labels: [],
             datasets: [{
@@ -215,152 +210,62 @@ if (!latencyCanvas) {
                 data: [],
                 borderColor: "#48d3c4",
                 backgroundColor: "rgba(72,211,196,.15)",
-                borderWidth: 2,
+                pointBackgroundColor: (ctx) => {
+                    const meta = latencyMeta[ctx.dataIndex];
+                    return meta && meta.success === false ? "#e5636e" : "#48d3c4";
+                },
                 pointRadius: 3,
+                borderWidth: 2,
                 tension: 0.35,
                 fill: true,
-            }]
+            }],
         },
-
         options: {
             responsive: true,
             maintainAspectRatio: false,
-
+            interaction: { mode: "nearest", intersect: false },
             scales: {
-                x: {
-                    grid: {
-                        color: "rgba(255,255,255,.06)"
-                    }
-                },
-
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: "rgba(255,255,255,.06)"
-                    },
-                    title: {
-                        display: true,
-                        text: "ms"
-                    }
-                }
+                x: { type: "category", grid: { color: chartGridColor }, ticks: { maxRotation: 0, autoSkip: true } },
+                y: { grid: { color: chartGridColor }, beginAtZero: true, title: { display: true, text: "ms" } },
             },
-
             plugins: {
-                legend: {
-                    display: false
-                },
-
+                legend: { display: false },
                 tooltip: {
-    callbacks: {
-        label: function(context) {
-
-            const point =
-                latencyPoints[context.dataIndex];
-
-            if (!point || !point.success) {
-                return "Ping failed — 0 ms";
-            }
-
-            return `${Number(point.latency_ms)} ms`;
-        }
-    }
-}
-            }
-        }
+                    rtl: true,
+                    callbacks: {
+                        label: (ctx) => {
+                            const meta = latencyMeta[ctx.dataIndex];
+                            if (meta && meta.success === false) return "Timeout — 0 ms";
+                            return `${ctx.parsed.y} ms (${meta && meta.target ? meta.target : ""})`;
+                        },
+                    },
+                },
+            },
+        },
     });
 
-
-    async function updateLatencyChart() {
-
-        try {
-
-            const response = await fetch(
-                "{% url 'latency_history_api' %}",
-                {
-                    cache: "no-store"
-                }
-            );
-
-            console.log(
-                "Latency API status:",
-                response.status
-            );
-
-            if (!response.ok) {
-                throw new Error(
-                    `HTTP ${response.status}`
-                );
-            }
-
-            const data = await response.json();
-
-            console.log(
-                "Latency API data:",
-                data
-            );
-
-            latencyPoints = Array.isArray(data.points)
-                ? data.points
-                : [];
-
-            latencyChart.data.labels =
-                latencyPoints.map(
-                    point => point.time
-                );
-
-            latencyChart.data.datasets[0].data =
-                latencyPoints.map(point => {
-
-                    const latency = Number(point.latency_ms);
-
-                    if (
-                        !point.success ||
-                        !Number.isFinite(latency) ||
-                        latency < 0
-                    ) {
-                        return 0;
-                    }
-
-                    return latency;
-                });
-
-            latencyChart.update();
-
-        } catch (error) {
-
-            console.error(
-                "Latency chart error:",
-                error
-            );
-
-        }
+    function updateLatencyChart() {
+        return fetch("{% url 'latency_history_api' %}", { cache: "no-store" })
+            .then((response) => response.json())
+            .then((data) => {
+                const points = data.points || [];
+                latencyMeta = points.map((p) => ({ success: p.success, target: p.target }));
+                latencyChart.data.labels = points.map((p) => p.time);
+                // The API now sends latency_ms=0 for a failed ping
+                // (instead of omitting it), so a timeout shows up as a
+                // visible dip - colored/labeled as a timeout via
+                // latencyMeta above - rather than a gap in the line.
+                latencyChart.data.datasets[0].data = points.map((p) => p.latency_ms);
+                latencyChart.update();
+            })
+            .catch((error) => console.error("Latency history error:", error));
     }
 
-
-    updateLatencyChart();
-
-    setInterval(
-        updateLatencyChart,
-        {{ poll_interval_ms }}
-    );
-}
-</script>
-
-    <script>
-const bandwidthCanvas = document.getElementById("bandwidthChart");
-
-if (!bandwidthCanvas) {
-    console.error("bandwidthChart canvas not found!");
-} else {
-
-    const bandwidthCtx = bandwidthCanvas.getContext("2d");
-
+    const bandwidthCtx = document.getElementById("bandwidthChart").getContext("2d");
     const bandwidthChart = new Chart(bandwidthCtx, {
         type: "line",
-
         data: {
             labels: [],
-
             datasets: [
                 {
                     label: "Upload",
@@ -381,301 +286,288 @@ if (!bandwidthCanvas) {
                     pointRadius: 0,
                     tension: 0.35,
                     fill: true,
-                }
-            ]
+                },
+            ],
         },
-
         options: {
             responsive: true,
             maintainAspectRatio: false,
-
-            interaction: {
-                mode: "index",
-                intersect: false
-            },
-
+            interaction: { mode: "index", intersect: false },
             scales: {
-                x: {
-                    grid: {
-                        color: "rgba(255,255,255,.06)"
-                    }
-                },
-
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: "rgba(255,255,255,.06)"
-                    },
-                    title: {
-                        display: true,
-                        text: "Mbps"
-                    }
-                }
+                x: { type: "category", grid: { color: chartGridColor }, ticks: { maxRotation: 0, autoSkip: true } },
+                y: { grid: { color: chartGridColor }, beginAtZero: true, title: { display: true, text: "Mbps" } },
             },
-
             plugins: {
-                legend: {
-                    display: true
-                },
-
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return `${context.dataset.label}: ${context.raw} Mbps`;
-                        }
-                    }
-                }
-            }
-        }
+                legend: { display: true, labels: { boxWidth: 12 } },
+                tooltip: { rtl: true },
+            },
+        },
     });
 
+    function updateBandwidthChart() {
+        return fetch("{% url 'bandwidth_api' %}", { cache: "no-store" })
+            .then((response) => response.json())
+            .then((data) => {
+                const points = data.points || [];
+                bandwidthChart.data.labels = points.map((p) => p.time);
+                bandwidthChart.data.datasets[0].data = points.map((p) => p.sent_mbps);
+                bandwidthChart.data.datasets[1].data = points.map((p) => p.recv_mbps);
+                bandwidthChart.update();
 
-    async function updateBandwidthChart() {
-
-        try {
-
-            const response = await fetch(
-                "{% url 'bandwidth_api' %}",
-                {
-                    cache: "no-store"
+                if (data.current) {
+                    document.getElementById("bwUpValue").textContent = data.current.sent_mbps;
+                    document.getElementById("bwDownValue").textContent = data.current.recv_mbps;
                 }
-            );
-
-            console.log(
-                "Bandwidth API status:",
-                response.status
-            );
-
-            if (!response.ok) {
-                throw new Error(
-                    `HTTP ${response.status}`
-                );
-            }
-
-            const data = await response.json();
-
-            console.log(
-                "Bandwidth API data:",
-                data
-            );
-
-            const points = Array.isArray(data.points)
-                ? data.points
-                : [];
-
-            bandwidthChart.data.labels =
-                points.map(point => point.time);
-
-            bandwidthChart.data.datasets[0].data =
-                points.map(point =>
-                    Number(point.sent_mbps) || 0
-                );
-
-            bandwidthChart.data.datasets[1].data =
-                points.map(point =>
-                    Number(point.recv_mbps) || 0
-                );
-
-            bandwidthChart.update();
-
-
-            if (data.current) {
-
-                document.getElementById("bwUpValue").textContent =
-                    Number(data.current.sent_mbps || 0).toFixed(3);
-
-                document.getElementById("bwDownValue").textContent =
-                    Number(data.current.recv_mbps || 0).toFixed(3);
-            }
-
-        } catch (error) {
-
-            console.error(
-                "Bandwidth chart error:",
-                error
-            );
-        }
+            })
+            .catch((error) => console.error("Bandwidth error:", error));
     }
 
+    function timeAgoFa(isoString) {
+        const diffMs = Date.now() - new Date(isoString).getTime();
+        const seconds = Math.max(0, Math.floor(diffMs / 1000));
+        if (seconds < 60) return "چند لحظه پیش";
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes} دقیقه پیش`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours} ساعت پیش`;
+        const days = Math.floor(hours / 24);
+        return `${days} روز پیش`;
+    }
 
-    updateBandwidthChart();
+    function updateDashboardStats() {
+        return fetch("{% url 'dashboard_stats_api' %}", { cache: "no-store" })
+            .then((response) => {
+                if (!response.ok) throw new Error("Failed to load dashboard stats");
+                return response.json();
+            })
+            .then((data) => {
+                document.getElementById("deviceCountValue").textContent = data.device_count;
+                document.getElementById("openAlertCountValue").textContent = data.open_alert_count;
 
-    setInterval(
-        updateBandwidthChart,
-        {{ poll_interval_ms }}
-    );
-}
-</script>
+                const alertTrend = document.getElementById("openAlertCountTrend");
+                if (data.critical_alert_count > 0) {
+                    alertTrend.textContent = `${data.critical_alert_count} مورد بحرانی`;
+                    alertTrend.className = "trend down";
+                } else {
+                    alertTrend.textContent = "بدون مورد بحرانی";
+                    alertTrend.className = "trend up";
+                }
 
-<script>
+                document.getElementById("packetLossValue").textContent = `${data.packet_loss}%`;
+                const packetTrend = document.getElementById("packetLossTrend");
+                if (data.packet_loss > 10) {
+                    packetTrend.textContent = "نیاز به بررسی";
+                    packetTrend.className = "trend down";
+                } else {
+                    packetTrend.textContent = "در محدوده مطلوب";
+                    packetTrend.className = "trend up";
+                }
+
+                const ring = document.getElementById("healthScoreRing");
+                ring.style.setProperty("--score", data.health_score);
+                ring.classList.remove("good", "medium", "bad");
+                ring.classList.add(data.health_tier);
+                document.getElementById("healthScoreValue").textContent = `${data.health_score}%`;
+
+                const statusLabel = { good: "عالی", medium: "قابل قبول", bad: "نیازمند بررسی" };
+                const statusBadge = document.getElementById("healthStatusBadge");
+                statusBadge.className = `health-status ${data.health_tier}`;
+                statusBadge.textContent = statusLabel[data.health_tier] || data.health_tier;
+
+                const alertsBody = document.getElementById("recentAlertsBody");
+                if (!data.alerts || data.alerts.length === 0) {
+                    alertsBody.innerHTML = '<tr><td colspan="4" class="muted">هیچ هشداری ثبت نشده است.</td></tr>';
+                    return;
+                }
+
+                alertsBody.innerHTML = "";
+
+                data.alerts.forEach((alert) => {
+                    const row = document.createElement("tr");
+                    row.className = `alert-row ${alert.severity}${alert.is_resolved ? " resolved" : ""}`;
+
+                    const deviceCell = document.createElement("td");
+                    const link = document.createElement("a");
+                    link.href = alert.url;
+                    link.textContent = alert.device_name;
+                    deviceCell.appendChild(link);
+
+                    const severityCell = document.createElement("td");
+                    const badge = document.createElement("span");
+                    badge.className = `badge ${alert.badge_class}`;
+                    badge.textContent = alert.severity_display;
+                    severityCell.appendChild(badge);
+
+                    const statusCell = document.createElement("td");
+                    const statusTag = document.createElement("span");
+                    statusTag.className = alert.is_resolved ? "resolved-tag" : "active-tag";
+                    statusTag.textContent = alert.is_resolved ? "رفع‌شده" : "فعال";
+                    statusCell.appendChild(statusTag);
+
+                    const timeCell = document.createElement("td");
+                    timeCell.title = alert.created_at_iso;
+                    timeCell.textContent = timeAgoFa(alert.created_at_iso);
+
+                    row.appendChild(deviceCell);
+                    row.appendChild(severityCell);
+                    row.appendChild(statusCell);
+                    row.appendChild(timeCell);
+
+                    alertsBody.appendChild(row);
+                });
+            })
+            .catch((error) => console.error("Dashboard stats error:", error));
+    }
+
     function updatePing() {
-
-        fetch('/api/ping/').then(response => response.json()).then(data => {
-
+        return fetch('/api/ping/', { cache: "no-store" }).then(response => response.json()).then(data => {
             const pingValue = document.getElementById("ping-value");
-            if(data.success){
+            if (data.success) {
                 pingValue.innerHTML = data.latency;
-            }
-            else{
+            } else {
                 pingValue.innerHTML = data.message;
             }
         });
     }
-    updatePing();
-    setInterval(updatePing, {{ poll_interval_ms }});
-</script>
 
-<script>
-function updateLogs() {
+    function updateLogs() {
+        return fetch("{% url 'network_logs_api' %}", { cache: "no-store" })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to load logs");
+                }
+                return response.json();
+            })
+            .then(data => {
+                const logArea = document.getElementById("logArea");
 
-    fetch("{% url 'network_logs_api' %}")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to load logs");
-            }
+                if (!data.logs || data.logs.length === 0) {
+                    logArea.innerHTML = `
+                        <div class="log-empty">
+                            هنوز لاگی ثبت نشده است.
+                        </div>
+                    `;
+                    return;
+                }
 
-            return response.json();
-        })
-        .then(data => {
+                logArea.innerHTML = "";
 
-            const logArea = document.getElementById("logArea");
+                data.logs.forEach(log => {
+                    let levelClass = "log-info";
 
-            if (!data.logs || data.logs.length === 0) {
-                logArea.innerHTML = `
+                    if (log.level === "SUCCESS") {
+                        levelClass = "log-success";
+                    } else if (log.level === "WARNING") {
+                        levelClass = "log-warning";
+                    } else if (log.level === "CRITICAL") {
+                        levelClass = "log-critical";
+                    }
+
+                    const row = document.createElement("div");
+                    row.className = `log-row ${levelClass}`;
+
+                    const time = document.createElement("span");
+                    time.className = "log-time";
+                    time.textContent = log.time;
+
+                    const level = document.createElement("span");
+                    level.className = "log-level";
+                    level.textContent = log.level;
+
+                    const message = document.createElement("span");
+                    message.className = "log-message";
+                    message.textContent = log.message;
+
+                    row.appendChild(time);
+                    row.appendChild(level);
+                    row.appendChild(message);
+
+                    logArea.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error("Log API error:", error);
+                document.getElementById("logArea").innerHTML = `
                     <div class="log-empty">
-                        هنوز لاگی ثبت نشده است.
+                        دریافت لاگ‌ها با خطا مواجه شد.
                     </div>
                 `;
-                return;
-            }
-
-            logArea.innerHTML = "";
-
-            data.logs.forEach(log => {
-
-                let levelClass = "log-info";
-
-                if (log.level === "SUCCESS") {
-                    levelClass = "log-success";
-                }
-                else if (log.level === "WARNING") {
-                    levelClass = "log-warning";
-                }
-                else if (log.level === "CRITICAL") {
-                    levelClass = "log-critical";
-                }
-
-                const row = document.createElement("div");
-
-                row.className = `log-row ${levelClass}`;
-
-                const time = document.createElement("span");
-                time.className = "log-time";
-                time.textContent = log.time;
-
-                const level = document.createElement("span");
-                level.className = "log-level";
-                level.textContent = log.level;
-
-                const message = document.createElement("span");
-                message.className = "log-message";
-                message.textContent = log.message;
-
-                row.appendChild(time);
-                row.appendChild(level);
-                row.appendChild(message);
-
-                logArea.appendChild(row);
             });
-        })
-        .catch(error => {
+    }
 
-            console.error("Log API error:", error);
+    function updateServices() {
+        return fetch("{% url 'services_api' %}", { cache: "no-store" })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Failed to load services");
+                }
+                return response.json();
+            })
+            .then(data => {
+                const serviceList = document.getElementById("serviceList");
 
-            document.getElementById("logArea").innerHTML = `
-                <div class="log-empty">
-                    دریافت لاگ‌ها با خطا مواجه شد.
-                </div>
-            `;
-        });
-}
+                if (!data.services || data.services.length === 0) {
+                    serviceList.innerHTML = `
+                        <div class="service-row muted">
+                            داده‌ای برای نمایش وجود ندارد.
+                        </div>
+                    `;
+                    return;
+                }
 
-updateLogs();
+                const statusLabel = {
+                    success: "Online",
+                    warning: "Degraded",
+                    danger: "Down",
+                };
 
-setInterval(
-    updateLogs,
-    {{ poll_interval_ms }}
-);
-</script>
+                serviceList.innerHTML = "";
 
-<script>
-function updateServices() {
+                data.services.forEach(service => {
+                    const row = document.createElement("div");
+                    row.className = "service-row";
 
-    fetch("{% url 'services_api' %}")
-        .then(response => {
-            if (!response.ok) {
-                throw new Error("Failed to load services");
-            }
+                    const name = document.createElement("span");
+                    name.textContent = service.name;
 
-            return response.json();
-        })
-        .then(data => {
+                    const badge = document.createElement("span");
+                    badge.className = `badge ${service.status}`;
+                    badge.textContent = statusLabel[service.status] || service.status;
+                    badge.title = service.message;
 
-            const serviceList = document.getElementById("serviceList");
+                    row.appendChild(name);
+                    row.appendChild(badge);
 
-            if (!data.services || data.services.length === 0) {
-                serviceList.innerHTML = `
+                    serviceList.appendChild(row);
+                });
+            })
+            .catch(error => {
+                console.error("Services API error:", error);
+                document.getElementById("serviceList").innerHTML = `
                     <div class="service-row muted">
-                        داده‌ای برای نمایش وجود ندارد.
+                        دریافت وضعیت سرویس‌ها با خطا مواجه شد.
                     </div>
                 `;
-                return;
-            }
-
-            const statusLabel = {
-                success: "Online",
-                warning: "Degraded",
-                danger: "Down",
-            };
-
-            serviceList.innerHTML = "";
-
-            data.services.forEach(service => {
-
-                const row = document.createElement("div");
-                row.className = "service-row";
-
-                const name = document.createElement("span");
-                name.textContent = service.name;
-
-                const badge = document.createElement("span");
-                badge.className = `badge ${service.status}`;
-                badge.textContent = statusLabel[service.status] || service.status;
-                badge.title = service.message;
-
-                row.appendChild(name);
-                row.appendChild(badge);
-
-                serviceList.appendChild(row);
             });
-        })
-        .catch(error => {
+    }
 
-            console.error("Services API error:", error);
+    // ------------------------------------------------------------
+    // Single coordinated refresh cycle - every live-updating piece
+    // of the dashboard (ping, services, logs, both charts, and the
+    // stat cards/health ring/alerts table that used to only render
+    // once at page load) now refreshes together on one shared
+    // interval instead of each having its own independent timer.
+    // ------------------------------------------------------------
+    function refreshDashboard() {
+        updatePing();
+        updateServices();
+        updateLogs();
+        updateLatencyChart();
+        updateBandwidthChart();
+        updateDashboardStats();
+    }
 
-            document.getElementById("serviceList").innerHTML = `
-                <div class="service-row muted">
-                    دریافت وضعیت سرویس‌ها با خطا مواجه شد.
-                </div>
-            `;
-        });
-}
-
-updateServices();
-
-setInterval(
-    updateServices,
-    {{ poll_interval_ms }}
-);
+    refreshDashboard();
+    setInterval(refreshDashboard, {{ poll_interval_ms }});
 </script>
 {% endblock %}

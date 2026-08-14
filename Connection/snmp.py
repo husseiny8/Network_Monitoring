@@ -1,27 +1,3 @@
-"""Best-effort SNMP polling for network equipment (routers, switches,
-managed APs, ...) that expose the standard MIB-II objects.
-
-This is intentionally optional and *never* raises out of this module:
-most home/small-office gear ships with SNMP turned off by default, so a
-timeout here is an expected, common outcome - not a bug. If the
-`pysnmp` package isn't installed at all, every call below returns an
-"unavailable" result instead of raising an ImportError at import time,
-so the rest of the app keeps working without it.
-
-Setup
------
-    pip install "pysnmp==4.4.12" "pyasn1<0.5.0"
-
-pysnmp 4.4.12 is the last release before the project's async-first
-rewrite, and is what the synchronous getCmd()/next() pattern below
-targets. It still depends on Python's old `asyncore` module, which was
-removed in Python 3.12 - on 3.12+ also run:
-
-    pip install pyasyncore
-
-instructions above are in requirements.txt as well.
-"""
-
 try:
     from pysnmp.hlapi import (
         CommunityData,
