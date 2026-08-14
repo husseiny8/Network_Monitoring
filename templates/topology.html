@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}نقشه توپولوژی شبکه | پایش شبکه{% endblock %}
+{% block content %}
+
+    <style>
+    .topology-legend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 18px;
+    padding: 12px 16px;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1;
+}
+
+.topology-legend .swatch {
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+}
+
+.topology-legend .swatch.gateway {
+    background: var(--accent);
+}
+
+.topology-legend .swatch.online {
+    background: var(--surface-2);
+    border: 2px solid var(--accent);
+}
+
+.topology-legend .swatch.offline {
+    background: var(--surface-2);
+    border: 2px solid var(--danger);
+}
+
+@media (max-width: 600px) {
+    .topology-legend {
+        justify-content: flex-start;
+        gap: 14px 20px;
+    }
+}
+    </style>
+
+<section class="page-header">
+  <div>
+    <p class="eyebrow"><span class="dot"></span>Network Topology</p>
+    <h1>نقشه توپولوژی شبکه</h1>
+    <p class="muted">
+      نمایش گرافیکی دستگاه‌های شناسایی‌شده حول Gateway شبکه. این نقشه بر اساس داده Ping و اسکن ARP ساخته می‌شود؛
+      نمایانگر مسیر فیزیکی سوییچ‌ها نیست، بلکه رابطه هر دستگاه با Gateway را نشان می‌دهد.
+    </p>
+  </div>
+  <div class="header-actions">
+    <button class="ghost-btn" type="button" onclick="loadTopology()">به‌روزرسانی</button>
+  </div>
+</section>
+
+<section class="panel">
+  <div class="topology-wrap" id="topologyWrap">
+    <p class="muted">در حال بارگذاری نقشه شبکه...</p>
+  </div>
+
+  <div class="topology-legend">
+    <div class="legend-item">
+        <span class="swatch gateway"></span>
+        <span>Gateway</span>
+    </div>
+
+    <div class="legend-item">
+        <span class="swatch online"></span>
+        <span>دستگاه آنلاین</span>
+    </div>
+
+    <div class="legend-item">
+        <span class="swatch offline"></span>
+        <span>دستگاه آفلاین</span>
+    </div>
+</div>
+</section>
+
+<script>
+function loadTopology() {
+    fetch("{% url 'topology_api' %}")
+        .then((response) => response.json())
+        .then((data) => renderTopology(data))
+        .catch((error) => {
+            console.error("Topology error:", error);
+            document.getElementById("topologyWrap").innerHTML =
+                '<p class="muted">دریافت نقشه شبکه با خطا مواجه شد.</p>';
+        });
+}
+
+function renderTopology(data) {
+    const wrap = document.getElementById("topologyWrap");
+    const devices = data.devices || [];
+
+    if (devices.length === 0) {
+        wrap.innerHTML = '<p class="muted">هنوز دستگاهی شناسایی نشده است. از صفحه «دستگاه‌ها» شبکه را اسکن کنید.</p>';
+        return;
+    }
+
+    const width = 800;
+    const height = 560;
+    const cx = width / 2;
+    const cy = height / 2;
+    const ringRadius = Math.min(width, height) / 2 - 90;
+
+    let svg = `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // connecting lines first, so nodes draw on top
+    devices.forEach((device, i) => {
+        const angle = (2 * Math.PI * i) / devices.length - Math.PI / 2;
+        const x = cx + ringRadius * Math.cos(angle);
+        const y = cy + ringRadius * Math.sin(angle);
+        const color = device.online ? "var(--accent)" : "var(--danger)";
+        const opacity = device.online ? 0.55 : 0.35;
+        const dash = device.online ? "" : 'stroke-dasharray="4 4"';
+        svg += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="${color}" stroke-opacity="${opacity}" stroke-width="1.5" ${dash}/>`;
+    });
+
+    // gateway node
+    svg += `<circle cx="${cx}" cy="${cy}" r="30" fill="var(--accent)"/>`;
+    svg += `<text x="${cx}" y="${cy - 40}" text-anchor="middle" class="topology-node-label" font-weight="700">Gateway</text>`;
+    svg += `<text x="${cx}" y="${cy + 4}" text-anchor="middle" class="topology-node-sub" fill="#08221e" font-weight="700">GW</text>`;
+    if (data.gateway_ip) {
+        svg += `<text x="${cx}" y="${cy + 50}" text-anchor="middle" class="topology-node-sub">${data.gateway_ip}</text>`;
+    }
+
+    // device nodes
+    devices.forEach((device, i) => {
+        const angle = (2 * Math.PI * i) / devices.length - Math.PI / 2;
+        const x = cx + ringRadius * Math.cos(angle);
+        const y = cy + ringRadius * Math.sin(angle);
+        const stroke = device.online ? "var(--accent)" : "var(--danger)";
+        const labelY = y + (Math.sin(angle) >= 0 ? 34 : -26);
+        const subY = y + (Math.sin(angle) >= 0 ? 48 : -12);
+
+        svg += `<g style="cursor:pointer" onclick="window.location.href='/devices/${device.id}'">`;
+        svg += `<circle cx="${x}" cy="${y}" r="20" fill="var(--surface-2)" stroke="${stroke}" stroke-width="2.5"/>`;
+        svg += `<text x="${x}" y="${y + 4}" text-anchor="middle" class="topology-node-sub" fill="var(--text)">${(device.name || "").toString().slice(-3).toUpperCase()}</text>`;
+        svg += `<text x="${x}" y="${labelY}" text-anchor="middle" class="topology-node-label">${escapeHtml(device.name)}</text>`;
+        svg += `<text x="${x}" y="${subY}" text-anchor="middle" class="topology-node-sub">${device.ip}</text>`;
+        svg += `</g>`;
+    });
+
+    svg += "</svg>";
+    wrap.innerHTML = svg;
+}
+
+function escapeHtml(value) {
+    const div = document.createElement("div");
+    div.textContent = value == null ? "" : value;
+    return div.innerHTML;
+}
+
+loadTopology();
+setInterval(loadTopology, {{ poll_interval_ms }});
+</script>
+{% endblock %}

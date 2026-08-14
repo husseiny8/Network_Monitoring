@@ -40,6 +40,44 @@
 
 <section class="panel">
   <div class="panel-header">
+    <div>
+      <h2>SNMP</h2>
+      <span class="muted small">اطلاعات تجهیزات شبکه (اختیاری، در صورت فعال‌بودن SNMP روی دستگاه)</span>
+    </div>
+    <span class="tag {% if device.snmp_reachable %}tag-accent{% elif device.snmp_reachable == False %}tag-warn{% endif %}">
+      {% if device.snmp_reachable == None %}بررسی نشده{% elif device.snmp_reachable %}در دسترس{% else %}در دسترس نیست{% endif %}
+    </span>
+  </div>
+
+  <div class="details-grid">
+    <div class="detail-item">
+      <span class="detail-label">sysDescr</span>
+      <strong class="mono">{{ device.snmp_sys_descr|default:"—" }}</strong>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">Uptime</span>
+      <strong class="mono">{% if device.snmp_uptime_seconds != None %}{{ device.snmp_uptime_seconds }}s{% else %}—{% endif %}</strong>
+    </div>
+    <div class="detail-item">
+      <span class="detail-label">آخرین بررسی</span>
+      <strong>{% if device.snmp_checked_at %}{{ device.snmp_checked_at|timesince }} پیش{% else %}—{% endif %}</strong>
+    </div>
+  </div>
+
+  <div class="form-actions" style="margin-top:14px">
+    {% if settings.snmp_enabled %}
+      <form method="post" action="{% url "device_snmp_check" device.id %}">
+        {% csrf_token %}
+        <button class="ghost-btn" type="submit">بررسی SNMP</button>
+      </form>
+    {% else %}
+      <span class="muted small">SNMP در <a class="text-link" href="{% url "settings" %}">تنظیمات عمومی</a> غیرفعال است.</span>
+    {% endif %}
+  </div>
+</section>
+
+<section class="panel">
+  <div class="panel-header">
     <h2>تاریخچه پایش</h2>
   </div>
   <div class="table-wrap">

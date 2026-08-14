@@ -8,11 +8,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from Connection.dns_lookup import lookup as dns_lookup
 from Connection.ping import ping_and_store
 from Connection.health import calculate_health_score
-from Connection.services import get_default_gateway, run_all as run_service_checks
-from .models import Device, SystemSettings
+from Connection.services import get_default_gateway, gateway_ip_from_subnet, run_all as run_service_checks
+from Connection.bandwidth import read_counters, compute_rate
+from Connection.snmp import poll_device
+from .models import Device, SystemSettings, BandwidthSample
 from Devices import device as device_scanner
 from .models import Ping
-from time import timezone
+from django.utils import timezone
 from .alert_manager import *
 
 PERIOD_DAYS = {"daily": 1, "weekly": 7, "monthly": 30}
@@ -784,6 +786,106 @@ def network_logs_api(request):
 
 
 @login_required
+def latency_history_api(request):
+    """Chronological (oldest -> newest) ping samples for the dashboard's
+    live latency chart. The old dashboard rendered static-height bars
+    server-side with no time axis or per-point detail; a real chart
+    needs each point's own timestamp/value so Chart.js can draw an axis
+    and a tooltip, hence a dedicated JSON endpoint instead of baking the
+    bars into the page HTML."""
+
+    pings = (
+        Ping.objects
+        .order_by("-created_at")[:30]
+    )
+
+    pings = list(reversed(pings))
+
+    points = []
+
+    for ping in pings:
+        latency = (
+            float(ping.latency_ms)
+            if ping.success and ping.latency_ms is not None
+            else 0
+        )
+
+        points.append({
+            "time": timezone.localtime(
+                ping.created_at
+            ).strftime("%H:%M:%S"),
+
+            "latency_ms": latency,
+
+            "success": bool(ping.success),
+
+            "target": ping.target,
+        })
+
+    return JsonResponse({
+        "points": points
+    })
+
+@login_required
+def bandwidth_api(request):
+    """Live host NIC throughput (upload/download in Mbps).
+
+    Unlike ping/DNS/TCP checks this doesn't depend on any remote target
+    responding - it reads the server machine's own interface counters,
+    so it's a monitoring signal that works with zero extra
+    configuration. Each call both records a new BandwidthSample (so the
+    rate can be computed against it next time) and returns the recent
+    history for the dashboard's bandwidth chart.
+    """
+
+    current = read_counters()
+    previous_sample = BandwidthSample.objects.order_by("-created_at").first()
+
+    sent_bps = recv_bps = 0.0
+
+    if previous_sample is not None:
+        elapsed = (
+            timezone.now() - previous_sample.created_at
+        ).total_seconds()
+
+        sent_bps, recv_bps = compute_rate(
+            {
+                "bytes_sent": previous_sample.bytes_sent,
+                "bytes_recv": previous_sample.bytes_recv,
+            },
+            current,
+            elapsed,
+        )
+
+    BandwidthSample.objects.create(
+        bytes_sent=current["bytes_sent"],
+        bytes_recv=current["bytes_recv"],
+        sent_bps=sent_bps,
+        recv_bps=recv_bps,
+    )
+
+    history = list(BandwidthSample.objects.order_by("-created_at")[:30])
+    history.reverse()
+
+    points = [
+        {
+            "time": timezone.localtime(s.created_at).strftime("%H:%M:%S"),
+            "sent_mbps": round((s.sent_bps or 0) / 1_000_000, 3),
+            "recv_mbps": round((s.recv_bps or 0) / 1_000_000, 3),
+        }
+        for s in history
+    ]
+
+    return JsonResponse({
+        "points": points,
+        "current": {
+            "sent_mbps": round(sent_bps / 1_000_000, 3),
+            "recv_mbps": round(recv_bps / 1_000_000, 3),
+        },
+    })
+
+
+@login_required
 def dashboard_view(request):
     online_devices = Device.objects.filter(is_online=True)
     open_alerts = Alert.objects.filter(is_resolved=False)
@@ -832,34 +934,6 @@ def dashboard_view(request):
         services=services,
     )
 
-    trend = list(reversed(recent_pings))
-
-    latencies = [
-        p.latency_ms
-        for p in trend
-        if p.success and p.latency_ms is not None
-    ]
-
-    max_latency = max(latencies) if latencies else 1
-    if max_latency < 1:
-        max_latency = 1
-
-    trend_bars = []
-
-    for p in trend:
-        if p.success and p.latency_ms is not None:
-            height_percent = round(
-                (p.latency_ms / max_latency) * 100
-            )
-        else:
-            height_percent = 4
-
-        trend_bars.append({
-            "latency_ms": p.latency_ms if p.latency_ms is not None else 0,
-            "height_percent": height_percent,
-            "success": p.success,
-        })
-
     settings_obj = SystemSettings.load()
 
     context = {
@@ -872,7 +946,6 @@ def dashboard_view(request):
         "availability": availability,
         "latest_latency" : latest_latency,
         "services": services,
-        "trend_bars": trend_bars,
         "last_pings": last_pings,
         "packet_loss": packet_loss,
         "poll_interval_ms": settings_obj.poll_interval_seconds * 1000,
@@ -1071,8 +1144,109 @@ def device_detail_view(request, device_id):
     return render(
         request,
         "devices/detail.html",
-        {"device": device, "ping_history": ping_history},
+        {
+            "device": device,
+            "ping_history": ping_history,
+            "settings": SystemSettings.load(),
+        },
     )
+
+
+@login_required
+def device_snmp_check_view(request, device_id):
+    """On-demand SNMP GET for one device (sysDescr + sysUpTime).
+
+    Deliberately not part of the periodic ARP scan cycle: most devices
+    on a typical network won't have SNMP enabled, and a 2-second timeout
+    per unreachable device would add real delay to every scan for
+    devices that will never answer. Triggered per-device instead, same
+    pattern as the manual "scan now" button.
+    """
+
+    device = get_object_or_404(Device, pk=device_id)
+    settings_obj = SystemSettings.load()
+
+    result = poll_device(
+        device.ip_address,
+        community=settings_obj.snmp_community,
+        port=settings_obj.snmp_port,
+    )
+
+    device.snmp_reachable = result["reachable"]
+    device.snmp_sys_descr = result["sys_descr"][:255]
+    device.snmp_uptime_seconds = result["uptime_seconds"]
+    device.snmp_checked_at = timezone.now()
+
+    device.save(
+        update_fields=[
+            "snmp_reachable",
+            "snmp_sys_descr",
+            "snmp_uptime_seconds",
+            "snmp_checked_at",
+        ]
+    )
+
+    if result["reachable"]:
+        messages.success(request, "دستگاه به SNMP پاسخ داد.")
+    else:
+        messages.warning(
+            request,
+            f"دستگاه به SNMP پاسخ نداد ({result['error'] or 'timeout'}).",
+        )
+
+    return redirect("device_detail", device_id=device.id)
+
+
+# --------------------------------------------------------------------------
+# Topology
+# --------------------------------------------------------------------------
+
+@login_required
+def topology_view(request):
+    settings_obj = SystemSettings.load()
+    return render(
+        request,
+        "topology.html",
+        {"poll_interval_ms": settings_obj.poll_interval_seconds * 1000},
+    )
+
+
+@login_required
+def topology_api(request):
+    """Star-topology snapshot: every known Device as a spoke around the
+    LAN gateway.
+
+    ARP scanning only tells us which IPs answered on this subnet, not
+    real switch/port-level adjacency - so a hub-and-spoke layout around
+    the gateway is the most honest shape for what this data actually
+    represents. It's a device-relationship map, not a claim about
+    physical cabling.
+    """
+
+    settings_obj = SystemSettings.load()
+
+    gateway_ip = (
+        get_default_gateway()
+        or gateway_ip_from_subnet(settings_obj.scan_subnet)
+    )
+
+    devices = []
+
+    for device in Device.objects.all().order_by("ip_address"):
+        devices.append({
+            "id": device.id,
+            "name": device.display_name,
+            "ip": device.ip_address,
+            "mac": device.mac_address,
+            "type": device.device_type or "Unknown",
+            "online": device.is_online,
+            "latency_ms": device.latency_ms,
+        })
+
+    return JsonResponse({
+        "gateway_ip": gateway_ip,
+        "devices": devices,
+    })
 
 
 # --------------------------------------------------------------------------
@@ -1464,6 +1638,19 @@ def settings_view(request):
             pass
 
         try:
+            settings_obj.high_latency_critical_ms = max(
+                1,
+                float(
+                    request.POST.get(
+                        "high_latency_critical_ms",
+                        settings_obj.high_latency_critical_ms
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+        try:
             settings_obj.packet_loss_warning_percent = min(
                 100,
                 max(
@@ -1476,6 +1663,50 @@ def settings_view(request):
                     )
                 )
             )
+        except (TypeError, ValueError):
+            pass
+
+        try:
+            settings_obj.packet_loss_critical_percent = min(
+                100,
+                max(
+                    0,
+                    float(
+                        request.POST.get(
+                            "packet_loss_critical_percent",
+                            settings_obj.packet_loss_critical_percent
+                        )
+                    )
+                )
+            )
+        except (TypeError, ValueError):
+            pass
+
+        # ======================================================
+        # SNMP
+        # ======================================================
+
+        settings_obj.snmp_enabled = (
+            request.POST.get("snmp_enabled")
+            == "on"
+        )
+
+        snmp_community = request.POST.get("snmp_community", "").strip()
+
+        if snmp_community:
+            settings_obj.snmp_community = snmp_community
+
+        try:
+            snmp_port = int(
+                request.POST.get(
+                    "snmp_port",
+                    settings_obj.snmp_port
+                )
+            )
+
+            if 1 <= snmp_port <= 65535:
+                settings_obj.snmp_port = snmp_port
+
         except (TypeError, ValueError):
             pass
 

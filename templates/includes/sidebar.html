@@ -17,6 +17,10 @@
       <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="6" rx="1.5"/><rect x="4" y="14" width="16" height="6" rx="1.5"/><circle cx="8" cy="7" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="1" fill="currentColor" stroke="none"/></svg></span>
       دستگاه‌ها
     </a>
+    <a href="{% url "topology" %}" class="nav-item{% if request.resolver_match.url_name == "topology" %} active{% endif %}">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.4"/><circle cx="5" cy="18" r="2.4"/><circle cx="19" cy="18" r="2.4"/><path d="M12 8.4V12M12 12L6.5 16.2M12 12l5.5 4.2"/></svg></span>
+      توپولوژی شبکه
+    </a>
     <a href="{% url "alerts" %}" class="nav-item{% if request.resolver_match.url_name == "alerts" or request.resolver_match.url_name == "alert_detail" %} active{% endif %}">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 3a5 5 0 00-5 5v3.2c0 .9-.3 1.8-.9 2.5L5 16h14l-1.1-2.3a4 4 0 01-.9-2.5V8a5 5 0 00-5-5z"/><path d="M9.5 18a2.5 2.5 0 005 0"/></svg></span>
       هشدارها

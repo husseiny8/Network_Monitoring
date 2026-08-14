@@ -350,12 +350,12 @@
 
         <div class="form-grid">
 
-            <!-- High Latency -->
+            <!-- High Latency - Warning -->
 
             <div class="form-group">
 
-                <label for="high_latency_threshold_ms">
-                    High Latency Threshold
+                <label for="high_latency_warning_ms">
+                    High Latency Threshold (Warning)
                 </label>
 
                 <div class="input-with-unit">
@@ -363,11 +363,11 @@
                     <input
                         type="number"
                         step="0.1"
-                        id="high_latency_threshold_ms"
-                        name="high_latency_threshold_ms"
+                        id="high_latency_warning_ms"
+                        name="high_latency_warning_ms"
                         dir="ltr"
                         data-trace-max="1000"
-                        value="{{ settings.high_latency_threshold_ms }}"
+                        value="{{ settings.high_latency_warning_ms }}"
                         min="1"
                     >
 
@@ -379,18 +379,18 @@
 
                 <small class="muted">
                     بالاتر رفتن Latency از این مقدار باعث ایجاد
-                    High Latency Alert می‌شود.
+                    Warning Alert می‌شود.
                 </small>
 
             </div>
 
 
-            <!-- Packet Loss -->
+            <!-- High Latency - Critical -->
 
             <div class="form-group">
 
-                <label for="packet_loss_threshold_percent">
-                    Packet Loss Threshold
+                <label for="high_latency_critical_ms">
+                    High Latency Threshold (Critical)
                 </label>
 
                 <div class="input-with-unit">
@@ -398,11 +398,46 @@
                     <input
                         type="number"
                         step="0.1"
-                        id="packet_loss_threshold_percent"
-                        name="packet_loss_threshold_percent"
+                        id="high_latency_critical_ms"
+                        name="high_latency_critical_ms"
+                        dir="ltr"
+                        data-trace-max="1000"
+                        value="{{ settings.high_latency_critical_ms }}"
+                        min="1"
+                    >
+
+                    <span>ms</span>
+
+                </div>
+
+                <div class="range-trace"><div class="range-trace-fill"></div></div>
+
+                <small class="muted">
+                    بالاتر رفتن Latency از این مقدار باعث ایجاد
+                    Critical Alert می‌شود.
+                </small>
+
+            </div>
+
+
+            <!-- Packet Loss - Warning -->
+
+            <div class="form-group">
+
+                <label for="packet_loss_warning_percent">
+                    Packet Loss Threshold (Warning)
+                </label>
+
+                <div class="input-with-unit">
+
+                    <input
+                        type="number"
+                        step="0.1"
+                        id="packet_loss_warning_percent"
+                        name="packet_loss_warning_percent"
                         dir="ltr"
                         data-trace-max="100"
-                        value="{{ settings.packet_loss_threshold_percent }}"
+                        value="{{ settings.packet_loss_warning_percent }}"
                         min="0"
                         max="100"
                     >
@@ -415,9 +450,131 @@
 
                 <small class="muted">
                     بیشتر شدن Packet Loss از این مقدار باعث ایجاد
-                    Packet Loss Alert می‌شود.
+                    Warning Alert می‌شود.
                 </small>
 
+            </div>
+
+
+            <!-- Packet Loss - Critical -->
+
+            <div class="form-group">
+
+                <label for="packet_loss_critical_percent">
+                    Packet Loss Threshold (Critical)
+                </label>
+
+                <div class="input-with-unit">
+
+                    <input
+                        type="number"
+                        step="0.1"
+                        id="packet_loss_critical_percent"
+                        name="packet_loss_critical_percent"
+                        dir="ltr"
+                        data-trace-max="100"
+                        value="{{ settings.packet_loss_critical_percent }}"
+                        min="0"
+                        max="100"
+                    >
+
+                    <span>%</span>
+
+                </div>
+
+                <div class="range-trace"><div class="range-trace-fill"></div></div>
+
+                <small class="muted">
+                    بیشتر شدن Packet Loss از این مقدار باعث ایجاد
+                    Critical Alert می‌شود.
+                </small>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ====================================================== -->
+    <!-- SNMP -->
+    <!-- ====================================================== -->
+
+    <section class="panel">
+
+        <div class="panel-header">
+            <div>
+                <h2>SNMP</h2>
+                <span class="muted small">
+                    پیکربندی بررسی SNMP برای تجهیزات شبکه (اختیاری)
+                </span>
+            </div>
+            <span class="tag tag-info">SNMP</span>
+        </div>
+
+        <div class="toggle-row" style="margin-bottom:16px">
+
+            <label class="switch">
+                <input
+                    type="checkbox"
+                    id="snmp_enabled"
+                    name="snmp_enabled"
+                    {% if settings.snmp_enabled %}
+                        checked
+                    {% endif %}
+                >
+                <span class="switch-track"><span class="switch-thumb"></span></span>
+            </label>
+
+            <div class="toggle-copy">
+                <label for="snmp_enabled" class="toggle-title">فعال‌سازی بررسی SNMP</label>
+                <small class="muted">
+                    در صورت فعال‌بودن، دکمه «بررسی SNMP» در صفحه هر دستگاه نمایش داده می‌شود.
+                </small>
+            </div>
+
+        </div>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label for="snmp_community">
+                    SNMP Community
+                </label>
+
+                <input
+                    type="text"
+                    id="snmp_community"
+                    name="snmp_community"
+                    dir="ltr"
+                    class="mono"
+                    value="{{ settings.snmp_community }}"
+                    placeholder="public"
+                >
+
+                <small class="muted">
+                    Community String مورد استفاده برای SNMPv2c.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="snmp_port">
+                    SNMP Port
+                </label>
+
+                <input
+                    type="number"
+                    id="snmp_port"
+                    name="snmp_port"
+                    dir="ltr"
+                    value="{{ settings.snmp_port }}"
+                    min="1"
+                    max="65535"
+                >
+
+                <small class="muted">
+                    پورت پیش‌فرض SNMP برابر ۱۶۱ است.
+                </small>
             </div>
 
         </div>

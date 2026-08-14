@@ -13,6 +13,17 @@ class Device(models.Model):
     first_seen = models.DateTimeField(auto_now_add=True)
     last_seen = models.DateTimeField(auto_now=True)
 
+    # --------------------------------------------------
+    # SNMP (optional, on-demand - see Connection/snmp.py)
+    # --------------------------------------------------
+    snmp_reachable = models.BooleanField(
+        null=True, blank=True, default=None,
+        help_text="None = never checked; True/False = last check result.",
+    )
+    snmp_sys_descr = models.CharField(max_length=255, blank=True, default="")
+    snmp_uptime_seconds = models.PositiveIntegerField(null=True, blank=True)
+    snmp_checked_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["ip_address"]
 
@@ -246,6 +257,12 @@ class SystemSettings(models.Model):
     # --------------------------------------------------
     high_latency_warning_ms = models.FloatField(default=200.0,help_text="Latency in milliseconds that triggers a warning.")
     high_latency_critical_ms = models.FloatField(default=500.0,help_text="Latency in milliseconds that triggers a critical alert.")
+    # --------------------------------------------------
+    # SNMP (optional device polling)
+    # --------------------------------------------------
+    snmp_enabled = models.BooleanField(default=False,help_text="Show the SNMP check action on device pages.")
+    snmp_community = models.CharField(max_length=100,default="public")
+    snmp_port = models.PositiveIntegerField(default=161)
 
     class Meta:
         verbose_name = "System settings"
@@ -286,3 +303,28 @@ class AlertState(models.Model):
 
     def reset_successes(self):
         self.consecutive_successes = 0
+
+
+class BandwidthSample(models.Model):
+    """One reading of the *host machine's own* network interface counters
+    (psutil.net_io_counters()), taken each time /api/bandwidth/ is polled.
+
+    Unlike Ping (which probes a remote target) this measures local NIC
+    throughput, so it works with zero external configuration - useful as
+    a "beyond ping" monitoring signal even on a network with nothing
+    else instrumented. sent_bps/recv_bps are the delta against the
+    previous row, computed once at write time so charting just reads
+    stored values instead of re-diffing pairs of rows on every request.
+    """
+
+    bytes_sent = models.BigIntegerField()
+    bytes_recv = models.BigIntegerField()
+    sent_bps = models.FloatField(null=True, blank=True)
+    recv_bps = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.created_at}: up {self.sent_bps} bps / down {self.recv_bps} bps"

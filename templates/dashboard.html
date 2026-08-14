@@ -75,21 +75,31 @@
   <article class="panel">
     <div class="panel-header">
       <h2>روند Latency</h2>
-      <span class="muted small"> چند نمونه اخیر</span>
+      <span class="muted small">۳۰ نمونه اخیر · به‌روزرسانی زنده</span>
     </div>
-    <div class="chart-bars" aria-label="Latency chart">
-    {% for bar in trend_bars|slice:"-7:" %}
-        <span style="height: {{ bar.height_percent }}%">
-            {{ bar.latency_ms }}
-        </span>
-    {% empty %}
-        <p class="muted small">
-            هنوز داده‌ای برای نمایش روند وجود ندارد.
-        </p>
-    {% endfor %}
-</div>
+    <div class="chart-wrap">
+      <canvas id="latencyChart" height="220" aria-label="Latency chart"></canvas>
+    </div>
   </article>
 
+  <article class="panel">
+    <div class="panel-header">
+      <div>
+        <h2>پهنای باند میزبان</h2>
+        <span class="muted small">ترافیک شبکه سرور (Upload/Download)</span>
+      </div>
+      <div class="bandwidth-live">
+        <span class="bandwidth-figure up"><span class="dot"></span><strong id="bwUpValue">—</strong> Mbps ↑</span>
+        <span class="bandwidth-figure down"><span class="dot"></span><strong id="bwDownValue">—</strong> Mbps ↓</span>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="bandwidthChart" height="220" aria-label="Bandwidth chart"></canvas>
+    </div>
+  </article>
+</section>
+
+<section class="grid-2">
   <article class="panel">
     <div class="panel-header">
       <h2>وضعیت سرویس‌ها</h2>
@@ -99,9 +109,7 @@
       <div class="service-row muted">در حال بررسی سرویس‌ها...</div>
     </div>
   </article>
-</section>
 
-<section class="grid-2">
   <article class="panel">
     <div class="panel-header">
   <h2>آخرین هشدارها</h2>
@@ -160,28 +168,344 @@
   </table>
 </div>
   </article>
-
-    <article class="panel">
-        <div class="panel-header">
-            <div>
-                <h2>Network Logs</h2>
-                <span class="muted small">رویدادهای اخیر شبکه</span>
-            </div>
-
-            <button
-                class="ghost-btn"
-                type="button"
-                onclick="updateLogs()">
-                به‌روزرسانی
-            </button>
-        </div>
-
-        <div id="logArea" class="network-log-area">
-            <div class="log-empty">در حال دریافت لاگ‌ها...</div>
-        </div>
-    </article>
 </section>
 
+<article class="panel">
+  <div class="panel-header">
+        <div>
+            <h2>Network Logs</h2>
+            <span class="muted small">رویدادهای اخیر شبکه</span>
+        </div>
+
+        <button
+            class="ghost-btn"
+            type="button"
+            onclick="updateLogs()">
+            به‌روزرسانی
+        </button>
+    </div>
+
+    <div id="logArea" class="network-log-area">
+        <div class="log-empty">در حال دریافت لاگ‌ها...</div>
+    </div>
+</article>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.5.0/chart.umd.min.js"></script>
+
+    <script>
+const latencyCanvas = document.getElementById("latencyChart");
+
+if (!latencyCanvas) {
+    console.error("latencyChart canvas not found!");
+} else {
+
+    const latencyCtx = latencyCanvas.getContext("2d");
+
+    // آخرین داده‌های دریافت‌شده از API
+    let latencyPoints = [];
+
+    const latencyChart = new Chart(latencyCtx, {
+        type: "line",
+
+        data: {
+            labels: [],
+            datasets: [{
+                label: "Latency (ms)",
+                data: [],
+                borderColor: "#48d3c4",
+                backgroundColor: "rgba(72,211,196,.15)",
+                borderWidth: 2,
+                pointRadius: 3,
+                tension: 0.35,
+                fill: true,
+            }]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            scales: {
+                x: {
+                    grid: {
+                        color: "rgba(255,255,255,.06)"
+                    }
+                },
+
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgba(255,255,255,.06)"
+                    },
+                    title: {
+                        display: true,
+                        text: "ms"
+                    }
+                }
+            },
+
+            plugins: {
+                legend: {
+                    display: false
+                },
+
+                tooltip: {
+    callbacks: {
+        label: function(context) {
+
+            const point =
+                latencyPoints[context.dataIndex];
+
+            if (!point || !point.success) {
+                return "Ping failed — 0 ms";
+            }
+
+            return `${Number(point.latency_ms)} ms`;
+        }
+    }
+}
+            }
+        }
+    });
+
+
+    async function updateLatencyChart() {
+
+        try {
+
+            const response = await fetch(
+                "{% url 'latency_history_api' %}",
+                {
+                    cache: "no-store"
+                }
+            );
+
+            console.log(
+                "Latency API status:",
+                response.status
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
+            const data = await response.json();
+
+            console.log(
+                "Latency API data:",
+                data
+            );
+
+            latencyPoints = Array.isArray(data.points)
+                ? data.points
+                : [];
+
+            latencyChart.data.labels =
+                latencyPoints.map(
+                    point => point.time
+                );
+
+            latencyChart.data.datasets[0].data =
+                latencyPoints.map(point => {
+
+                    const latency = Number(point.latency_ms);
+
+                    if (
+                        !point.success ||
+                        !Number.isFinite(latency) ||
+                        latency < 0
+                    ) {
+                        return 0;
+                    }
+
+                    return latency;
+                });
+
+            latencyChart.update();
+
+        } catch (error) {
+
+            console.error(
+                "Latency chart error:",
+                error
+            );
+
+        }
+    }
+
+
+    updateLatencyChart();
+
+    setInterval(
+        updateLatencyChart,
+        {{ poll_interval_ms }}
+    );
+}
+</script>
+
+    <script>
+const bandwidthCanvas = document.getElementById("bandwidthChart");
+
+if (!bandwidthCanvas) {
+    console.error("bandwidthChart canvas not found!");
+} else {
+
+    const bandwidthCtx = bandwidthCanvas.getContext("2d");
+
+    const bandwidthChart = new Chart(bandwidthCtx, {
+        type: "line",
+
+        data: {
+            labels: [],
+
+            datasets: [
+                {
+                    label: "Upload",
+                    data: [],
+                    borderColor: "#48d3c4",
+                    backgroundColor: "rgba(72,211,196,.12)",
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.35,
+                    fill: true,
+                },
+                {
+                    label: "Download",
+                    data: [],
+                    borderColor: "#e8a94a",
+                    backgroundColor: "rgba(232,169,74,.12)",
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    tension: 0.35,
+                    fill: true,
+                }
+            ]
+        },
+
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+
+            interaction: {
+                mode: "index",
+                intersect: false
+            },
+
+            scales: {
+                x: {
+                    grid: {
+                        color: "rgba(255,255,255,.06)"
+                    }
+                },
+
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgba(255,255,255,.06)"
+                    },
+                    title: {
+                        display: true,
+                        text: "Mbps"
+                    }
+                }
+            },
+
+            plugins: {
+                legend: {
+                    display: true
+                },
+
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.raw} Mbps`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+
+    async function updateBandwidthChart() {
+
+        try {
+
+            const response = await fetch(
+                "{% url 'bandwidth_api' %}",
+                {
+                    cache: "no-store"
+                }
+            );
+
+            console.log(
+                "Bandwidth API status:",
+                response.status
+            );
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}`
+                );
+            }
+
+            const data = await response.json();
+
+            console.log(
+                "Bandwidth API data:",
+                data
+            );
+
+            const points = Array.isArray(data.points)
+                ? data.points
+                : [];
+
+            bandwidthChart.data.labels =
+                points.map(point => point.time);
+
+            bandwidthChart.data.datasets[0].data =
+                points.map(point =>
+                    Number(point.sent_mbps) || 0
+                );
+
+            bandwidthChart.data.datasets[1].data =
+                points.map(point =>
+                    Number(point.recv_mbps) || 0
+                );
+
+            bandwidthChart.update();
+
+
+            if (data.current) {
+
+                document.getElementById("bwUpValue").textContent =
+                    Number(data.current.sent_mbps || 0).toFixed(3);
+
+                document.getElementById("bwDownValue").textContent =
+                    Number(data.current.recv_mbps || 0).toFixed(3);
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Bandwidth chart error:",
+                error
+            );
+        }
+    }
+
+
+    updateBandwidthChart();
+
+    setInterval(
+        updateBandwidthChart,
+        {{ poll_interval_ms }}
+    );
+}
+</script>
 
 <script>
     function updatePing() {
