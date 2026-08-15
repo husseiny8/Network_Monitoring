@@ -1,6 +1,6 @@
 # 🌐 Network Monitoring System
 
-<img src="dashboard.png" alt="isolated" width="500"/> <img src="settings.png" alt="isolated" width="500"/>
+<img src="dashboard.png" alt="isolated" width="300"/> <img src="settings.png" alt="isolated" width="300"/>
 
 
 <p align="center">
@@ -377,7 +377,7 @@ Example threshold configuration:
 | Check | Example Degraded Threshold |
 |---|---:|
 | DNS | `200 ms` |
-| Web | `1000 ms` |
+| Web | `2000 ms` |
 | TCP | `300 ms` |
 | Database | `100 ms` |
 | Gateway | `50 ms` |
