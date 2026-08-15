@@ -1,6 +1,6 @@
 # 🌐 Network Monitoring System
 
-<img src="dashboard.png" alt="isolated" width="300"/> <img src="settings.png" alt="isolated" width="300"/>
+<img src="dashboard.png" alt="isolated" width="350"/> <img src="settings.png" alt="isolated" width="350"/>
 
 
 <p align="center">
