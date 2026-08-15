@@ -1,5 +1,8 @@
 # 🌐 Network Monitoring System
 
+<img src="dashboard.png" alt="isolated" width="500"/> <img src="settings.png" alt="isolated" width="500"/>
+
+
 <p align="center">
   <strong>A web-based network monitoring and infrastructure health platform built with Django</strong>
 </p>
@@ -46,7 +49,7 @@ It can be used as a foundation for monitoring a local network, internet connecti
 - Tracking of first-seen and last-seen timestamps
 
 ### 💻 Device Monitoring
-
+![alt text](devices.png "Title")
 - Device online/offline state
 - IP address and MAC address tracking
 - Device name and device type
@@ -115,7 +118,7 @@ Example latency classification used by the monitoring logic:
 | `> 500 ms` | Critical |
 
 ### 🚨 Alerting System
-
+![alt text](alerts.png "Title")
 The alerting layer is designed around **state management**, rather than creating an independent alert for every repeated observation.
 
 Supported severity levels:
@@ -271,6 +274,8 @@ flowchart LR
 ## 🔎 Network Discovery
 
 The discovery subsystem uses **ARP-based scanning** to identify hosts on the local network.
+
+![alt text](devices-graph.png "Title")
 
 Typical workflow:
 
